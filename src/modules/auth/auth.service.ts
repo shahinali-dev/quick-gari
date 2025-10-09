@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import httpStatus from "http-status";
+import { Types } from "mongoose";
 import config from "../../config";
 import { AppError } from "../../errors/app_error";
 import createToken from "../../utils/create_token";
@@ -35,20 +36,20 @@ export class AuthService {
 
     const accessToken = createToken(
       jwtPayload,
-      config.JWT_ACCESS_SECRET,
-      config.JWT_ACCESS_EXPIRE_IN
+      config.JWT_ACCESS_SECRET as string,
+      config.JWT_ACCESS_EXPIRE_IN as string
     );
 
     const refreshToken = createToken(
       jwtPayload,
-      config.JWT_REFRESH_SECRET,
-      config.JWT_REFRESH_EXPIRE_IN
+      config.JWT_REFRESH_SECRET as string,
+      config.JWT_REFRESH_EXPIRE_IN as string
     );
 
     return { user: rest, accessToken, refreshToken };
   }
 
-  async getAuthUser(id: string) {
+  async getAuthUser(id: Types.ObjectId) {
     const user = await UserModel.findById(id).select("-password");
     return user;
   }
