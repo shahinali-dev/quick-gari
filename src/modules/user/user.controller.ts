@@ -1,8 +1,8 @@
-import httpStatus from "http-status";
-import catchAsync from "../../utils/catchAsync.utils";
-import sendResponse from "../../utils/sendResponse.utils";
-import { userService } from "./user.service";
 import { Router } from "express";
+import httpStatus from "http-status";
+import catchAsync from "../../utils/catch_async.utils";
+import sendResponse from "../../utils/send_response.utils";
+import { userService } from "./user.service";
 
 const router = Router();
 

@@ -1,13 +1,13 @@
 import { ErrorRequestHandler } from "express";
 import httpStatus from "http-status";
 import { ZodError } from "zod";
-import { TErrorMessage } from "../interface/error";
-import handleZodError from "../errors/handleZodError";
-import handleValidationError from "../errors/handleValidationError";
-import handleCastError from "../errors/handleCastError";
-import handleDuplicateKeyError from "../errors/handleDuplicateKeyError";
-import { AppError } from "../errors/AppError";
 import config from "../config";
+import { AppError } from "../errors/app_error";
+import handleCastError from "../errors/handle_cast_error";
+import handleDuplicateKeyError from "../errors/handle_duplicate_key_error";
+import handleValidationError from "../errors/handle_validation_error";
+import handleZodError from "../errors/handle_zod_error";
+import { TErrorMessage } from "../interface/error";
 
 const globalErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
   let statusCode = err.statusCode || httpStatus.INTERNAL_SERVER_ERROR;

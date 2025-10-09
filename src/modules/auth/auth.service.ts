@@ -1,10 +1,10 @@
 import httpStatus from "http-status";
+import jwt from "jsonwebtoken";
 import config from "../../config";
-import { AppError } from "../../errors/AppError";
-import comparePassword from "../../utils/comparePassword.utils";
+import { AppError } from "../../errors/app_error";
+import comparePassword from "../../utils/compare_password.utils";
 import { ISignIn, IUser } from "../user/user.interface";
 import UserModel from "../user/user.model";
-import jwt from "jsonwebtoken";
 
 const signUp = async (user: IUser) => {
   const isExist = await existingUser(user.email);
