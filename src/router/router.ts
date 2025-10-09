@@ -6,12 +6,12 @@ const router = Router();
 
 const moduleRoutes = [
   {
-    path: "/auth",
+    path: "/api/v1/auth",
     route: authRoute,
   },
 
   {
-    path: "/user",
+    path: "/api/v1/user",
     route: userRoute,
   },
 ];

@@ -4,10 +4,10 @@ import config from "./config";
 
 async function main() {
   try {
-    await mongoose.connect(config.db as string);
+    await mongoose.connect(config.DB as string);
 
-    app.listen(config.port, () => {
-      console.log(`Express app is listening on port ${config.port}`);
+    app.listen(config.PORT, () => {
+      console.log(`Express app is listening on port ${config.PORT}`);
     });
   } catch (error) {
     console.log(error);
