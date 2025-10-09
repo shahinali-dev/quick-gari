@@ -1,6 +1,7 @@
 import { Router } from "express";
 import httpStatus from "http-status";
 import config from "../../config";
+import { isAuth } from "../../middleware/is_auth";
 import catchAsync from "../../utils/catch_async.utils";
 import { authService } from "./auth.service";
 
@@ -38,8 +39,10 @@ router.post(
 
 router.get(
   "/user-info",
+  isAuth,
   catchAsync(async (req, res) => {
-    const user = await authService.getAuthUser();
+    const userId = req.user._id;
+    const user = await authService.getAuthUser(userId);
     res.status(httpStatus.OK).json({
       success: true,
       statusCode: httpStatus.OK,
