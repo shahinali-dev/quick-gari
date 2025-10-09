@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Role } from "./user.interface";
+import { Role } from "./user.enum";
 
 // Base validation schema for common fields
 const baseUserValidationSchema = z.object({
