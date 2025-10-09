@@ -10,7 +10,7 @@ const isExist = async (email: string) => {
 };
 
 const registerUser = async (user: IUser) => {
-  const existingUser = await this.isExist(user.email);
+  const existingUser = await isExist(user.email);
   if (existingUser) {
     throw new AppError(httpStatus.BAD_REQUEST, "User already exist");
   }

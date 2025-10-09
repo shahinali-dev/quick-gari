@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 
+import { Types } from "mongoose";
 import { Role } from "./user.enum";
 
 export interface IUser {
@@ -16,7 +17,7 @@ export interface ISignIn {
 }
 
 export interface IAuthUser {
-  _id: string;
+  _id: string | Types.ObjectId;
   name: string;
   email: string;
   role: string;

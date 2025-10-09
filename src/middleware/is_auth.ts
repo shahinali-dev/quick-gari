@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextFunction, Request, Response } from "express";
 import httpStatus from "http-status";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import config from "../config";
 import { AppError } from "../errors/app_error";
 import { IJWTPayload } from "../modules/auth/auth.interface";
@@ -27,12 +27,25 @@ export const isAuth = async (
   }
 
   try {
-    const decoded = jwt.verify(
-      accessToken,
-      config.JWT_ACCESS_SECRET
-    ) as IJWTPayload;
+    // Make sure the secret is defined
+    const secret = config.JWT_ACCESS_SECRET;
+    if (!secret) {
+      throw new AppError(
+        httpStatus.INTERNAL_SERVER_ERROR,
+        "JWT secret is not configured"
+      );
+    }
 
-    (req as any).user = decoded;
+    // Verify and cast safely
+    const decoded = jwt.verify(accessToken, secret) as JwtPayload | string;
+
+    if (typeof decoded === "string" || !decoded._id) {
+      throw new AppError(httpStatus.UNAUTHORIZED, "Invalid token payload");
+    }
+
+    // Type assertion after runtime validation
+    (req as any).user = decoded as IJWTPayload;
+
     next();
   } catch (err) {
     return next(
