@@ -3,23 +3,8 @@ import jwt from "jsonwebtoken";
 import config from "../../config";
 import { AppError } from "../../errors/app_error";
 import comparePassword from "../../utils/compare_password.utils";
-import { ISignIn, IUser } from "../user/user.interface";
+import { ISignIn } from "../user/user.interface";
 import UserModel from "../user/user.model";
-
-const signUp = async (user: IUser) => {
-  const isExist = await existingUser(user.email);
-  if (isExist) {
-    throw new AppError(httpStatus.BAD_REQUEST, "User already exist");
-  }
-  const newUser = await UserModel.create(user);
-  const result = await UserModel.findById(newUser._id).select("-password");
-  return result;
-};
-
-const existingUser = async (email: string) => {
-  const existingUser = await UserModel.findOne({ email });
-  return existingUser;
-};
 
 const signIn = async (payload: ISignIn) => {
   const existingUser = await UserModel.findOne({ email: payload.email });
@@ -53,8 +38,12 @@ const signIn = async (payload: ISignIn) => {
   return { user: jwtPayload, accessToken, refreshToken };
 };
 
+const getAuthUser = async (id: string) => {
+  const user = await UserModel.findById(id).select("-password");
+  return user;
+};
+
 export const authService = {
-  signUp,
   signIn,
-  existingUser,
+  getAuthUser,
 };
