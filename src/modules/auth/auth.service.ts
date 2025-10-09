@@ -1,41 +1,50 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import httpStatus from "http-status";
-import jwt from "jsonwebtoken";
 import config from "../../config";
 import { AppError } from "../../errors/app_error";
-import comparePassword from "../../utils/compare_password.utils";
+import createToken from "../../utils/create_token";
+import passwordUtils from "../../utils/password_utils";
 import { ISignIn } from "../user/user.interface";
 import UserModel from "../user/user.model";
+import { userService } from "../user/user.service";
 
 const signIn = async (payload: ISignIn) => {
-  const existingUser = await UserModel.findOne({ email: payload.email });
+  const existingUser = await userService.isExist(payload.email);
   if (!existingUser) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid email or password");
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid email");
   }
 
-  const isMatch = comparePassword(
+  const isMatch = await passwordUtils.compare(
     payload.password as string,
     existingUser.password as string
   );
+
   if (!isMatch) {
     throw new AppError(httpStatus.BAD_REQUEST, "Invalid email or password");
   }
 
-  // eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
-  const { password, ...jwtPayload } = existingUser.toJSON();
+  const { password, ...rest } = existingUser.toJSON();
 
-  const accessToken = jwt.sign(jwtPayload, config.JWT_ACCESS_SECRET as string, {
-    expiresIn: config.JWT_ACCESS_EXPIRE_IN,
-  });
+  const jwtPayload = {
+    _id: rest._id,
+    email: rest.email,
+    role: rest.role,
+  };
 
-  const refreshToken = jwt.sign(
+  const accessToken = createToken(
     jwtPayload,
-    config.JWT_REFRESH_SECRET as string,
-    {
-      expiresIn: config.JWT_REFRESH_EXPIRE_IN,
-    }
+    config.JWT_ACCESS_SECRET,
+    config.JWT_ACCESS_EXPIRE_IN
   );
 
-  return { user: jwtPayload, accessToken, refreshToken };
+  const refreshToken = createToken(
+    jwtPayload,
+    config.JWT_REFRESH_SECRET,
+    config.JWT_REFRESH_EXPIRE_IN
+  );
+
+  return { user: rest, accessToken, refreshToken };
 };
 
 const getAuthUser = async (id: string) => {
