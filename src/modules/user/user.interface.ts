@@ -1,9 +1,6 @@
 /* eslint-disable no-unused-vars */
 
-export enum Role {
-  ADMIN = "admin",
-  USER = "user",
-}
+import { Role } from "./user.enum";
 
 export interface IUser {
   name: string;
