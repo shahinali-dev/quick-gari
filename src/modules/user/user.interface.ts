@@ -9,6 +9,7 @@ export interface IUser {
   role: Role;
   password: string;
   avatar?: string;
+  phoneNumber?: string;
 }
 
 export interface ISignIn {
@@ -21,6 +22,8 @@ export interface IAuthUser {
   name: string;
   email: string;
   role: string;
+  avatar?: string;
+  phoneNumber?: string;
   provider: string;
   createdAt: string;
   updatedAt: string;

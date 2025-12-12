@@ -8,6 +8,7 @@ const baseUserValidationSchema = z.object({
   role: z.enum([Role.ADMIN, Role.USER]).optional(),
   avatar: z.string().optional(),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  phoneNumber: z.string().optional(),
 });
 
 export const userValidation = {

@@ -1,14 +1,53 @@
 import dotenv from "dotenv";
+import { z } from "zod";
+
 dotenv.config();
 
+// Define environment schema
+const envSchema = z.object({
+  DB_URL: z.string().min(1, "DB_URL is required"),
+  PORT: z.string().default("5000"),
+  NODE_ENV: z
+    .enum(["development", "production", "test"])
+    .default("development"),
+
+  SALT_ROUNDS: z
+    .string()
+    .min(1, "SALT_ROUNDS is required")
+    .refine((val) => !isNaN(Number(val)), "SALT_ROUNDS must be a valid number"),
+
+  JWT_ACCESS_SECRET: z.string().min(1, "JWT_ACCESS_SECRET is required"),
+  JWT_ACCESS_EXPIRE_IN: z.string().min(1, "JWT_ACCESS_EXPIRE_IN is required"),
+
+  JWT_REFRESH_SECRET: z.string().min(1, "JWT_REFRESH_SECRET is required"),
+  JWT_REFRESH_EXPIRE_IN: z.string().min(1, "JWT_REFRESH_EXPIRE_IN is required"),
+
+  CORS_ORIGIN: z.string().min(1, "CORS_ORIGIN is required").optional(),
+});
+
+// Parse & return validated env
+const parsed = envSchema.safeParse(process.env);
+
+if (!parsed.success) {
+  console.error("❌ Invalid environment variables:");
+  console.table(parsed.error.flatten().fieldErrors);
+  process.exit(1);
+}
+
+const env = parsed.data;
+
+// Export in required format
 export default {
-  DB: process.env.DB_URL,
-  PORT: process.env.PORT,
-  NODE_ENV: process.env.NODE_ENV,
-  SALT_ROUNDS: process.env.SALT_ROUNDS,
-  JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET,
-  JWT_ACCESS_EXPIRE_IN: process.env.JWT_ACCESS_EXPIRE_IN,
-  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
-  JWT_REFRESH_EXPIRE_IN: process.env.JWT_REFRESH_EXPIRE_IN,
-  CORS_ORIGIN: process.env.CORS_ORIGIN,
+  DB: env.DB_URL,
+  PORT: env.PORT,
+  NODE_ENV: env.NODE_ENV,
+
+  SALT_ROUNDS: env.SALT_ROUNDS,
+
+  JWT_ACCESS_SECRET: env.JWT_ACCESS_SECRET,
+  JWT_ACCESS_EXPIRE_IN: env.JWT_ACCESS_EXPIRE_IN,
+  JWT_REFRESH_SECRET: env.JWT_REFRESH_SECRET,
+  JWT_REFRESH_EXPIRE_IN: env.JWT_REFRESH_EXPIRE_IN,
+
+  CORS_ORIGIN: env.CORS_ORIGIN,
 };
