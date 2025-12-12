@@ -1,5 +1,5 @@
 {
-  "name": "express",
+  "name": "quick-gari",
   "version": "1.0.0",
   "description": "",
   "main": "./dist/server.js",
