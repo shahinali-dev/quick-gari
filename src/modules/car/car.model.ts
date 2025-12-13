@@ -1,4 +1,5 @@
-import { model, Schema } from "mongoose";
+import { Schema, model } from "mongoose";
+import { FuelType, GearType } from "./car.enum";
 import { ICar, IFeature, ISpecification } from "./car.interface";
 
 const SpecificationSchema = new Schema<ISpecification>({
@@ -12,19 +13,32 @@ const FeatureSchema = new Schema<IFeature>({
   model: { type: String, required: true },
   capacity: { type: String, required: true },
   color: { type: String, required: true },
+
   fuelType: {
     type: String,
-    enum: ["Petrol", "Diesel", "Hybrid", "Electric"],
+    enum: Object.values(FuelType),
     required: true,
   },
+
   gearType: {
     type: String,
-    enum: ["Manual", "Automatic"],
+    enum: Object.values(GearType),
     required: true,
   },
+
   images: {
     type: [String],
     required: true,
+    validate: {
+      validator: (arr: string[]) => arr.length > 0,
+      message: "At least one image is required",
+    },
+  },
+
+  seat: {
+    type: Number,
+    required: true,
+    min: 1,
   },
 });
 

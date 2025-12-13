@@ -1,3 +1,5 @@
+import { FuelType, GearType } from "./car.enum";
+
 export interface ISpecification {
   maxPower: string;
   fuelEconomy: string;
@@ -9,9 +11,10 @@ export interface IFeature {
   model: string;
   capacity: string;
   color: string;
-  fuelType: "Petrol" | "Diesel" | "Hybrid" | "Electric";
-  gearType: "Manual" | "Automatic";
+  fuelType: FuelType;
+  gearType: GearType;
   images: string[];
+  seat: number; // <-- NEW
 }
 
 export interface ICar {
