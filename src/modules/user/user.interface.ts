@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 
 import { Types } from "mongoose";
-import { Role } from "./user.enum";
+import { Gender, Role } from "./user.enum";
 
 export interface IUser {
   name: string;
@@ -9,7 +9,8 @@ export interface IUser {
   role: Role;
   password: string;
   avatar?: string;
-  phoneNumber?: string;
+  phoneNumber: string;
+  gender: Gender;
 }
 
 export interface ISignIn {
@@ -23,8 +24,9 @@ export interface IAuthUser {
   email: string;
   role: string;
   avatar?: string;
-  phoneNumber?: string;
+  phoneNumber: string;
   provider: string;
+  gender: Gender;
   createdAt: string;
   updatedAt: string;
   __v: number;

@@ -17,6 +17,8 @@ const userSchema = new Schema<IUser>(
     },
 
     avatar: { type: String },
+    phoneNumber: { type: String, required: true },
+    gender: { type: String, enum: ["male", "female"], required: true },
   },
   {
     timestamps: true,
