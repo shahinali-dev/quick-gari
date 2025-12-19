@@ -49,6 +49,12 @@ const CarSchema = new Schema<ICar>(
     specification: { type: SpecificationSchema, required: true },
 
     features: { type: FeatureSchema, required: true },
+
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
   },
   { timestamps: true }
 );

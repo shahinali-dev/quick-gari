@@ -1,3 +1,5 @@
+import { Types } from "mongoose";
+import { IUser } from "../user/user.interface";
 import { FuelType, GearType } from "./car.enum";
 
 export interface ISpecification {
@@ -21,6 +23,7 @@ export interface ICar {
   carName: string;
   specification: ISpecification;
   features: IFeature;
+  user: string | Types.ObjectId | IUser;
   createdAt?: Date;
   updatedAt?: Date;
 }

@@ -20,7 +20,8 @@ router.post(
   validateRequest(carValidation.createCarValidationSchema),
   catchAsync(async (req, res) => {
     const carData = req.body;
-    const car = await carService.createCar(carData);
+    const userId = req.user._id as string;
+    const car = await carService.createCar(carData, userId);
 
     sendResponse(res, {
       success: true,

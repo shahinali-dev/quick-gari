@@ -11,13 +11,13 @@ export class CarService {
   }
 
   // ✅ CREATE CAR
-  async createCar(data: ICar) {
+  async createCar(data: ICar, userId: string) {
     const existingCar = await this.isExist(data.carName);
     if (existingCar) {
       throw new AppError(httpStatus.BAD_REQUEST, "Car already exists");
     }
 
-    const newCar = await CarModel.create(data);
+    const newCar = await CarModel.create({ ...data, user: userId });
     return newCar;
   }
 
