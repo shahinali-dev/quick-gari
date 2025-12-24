@@ -34,6 +34,15 @@ export class UserService {
     const users = await UserModel.find().select("-password");
     return users;
   }
+
+  async makeCarOwner(userId: true) {
+    const user = await UserModel.findById(userId);
+    if (!user) {
+      throw new AppError(httpStatus.NOT_FOUND, "Car owner not found");
+    }
+    user.isCarOwner = true;
+    await user.save();
+  }
 }
 
 // Export singleton instance

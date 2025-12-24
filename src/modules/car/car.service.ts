@@ -1,5 +1,6 @@
 import httpStatus from "http-status";
 import { AppError } from "../../errors/app_error";
+import { userService } from "../user/user.service";
 import { ICar } from "./car.interface";
 import CarModel from "./car.model";
 
@@ -12,6 +13,7 @@ export class CarService {
 
   // ✅ CREATE CAR
   async createCar(data: ICar, userId: string) {
+    await userService.makeCarOwner(userId);
     const newCar = await CarModel.create({ ...data, user: userId });
     return newCar;
   }
