@@ -27,3 +27,9 @@ export interface ICar {
   createdAt?: Date;
   updatedAt?: Date;
 }
+
+export interface ICreateCarPayload {
+  carName: string;
+  specification: ISpecification;
+  features: Omit<IFeature, "images">;
+}

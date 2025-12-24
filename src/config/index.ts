@@ -23,6 +23,9 @@ const envSchema = z.object({
   JWT_REFRESH_EXPIRE_IN: z.string().min(1, "JWT_REFRESH_EXPIRE_IN is required"),
 
   CORS_ORIGIN: z.string().min(1, "CORS_ORIGIN is required").optional(),
+  CLOUDINARY_CLOUD_NAME: z.string().min(1, "CLOUDINARY_CLOUD_NAME is required"),
+  CLOUDINARY_API_KEY: z.string().min(1, "CLOUDINARY_API_KEY is required"),
+  CLOUDINARY_API_SECRET: z.string().min(1, "CLOUDINARY_API_SECRET is required"),
 });
 
 // Parse & return validated env
@@ -50,4 +53,8 @@ export default {
   JWT_REFRESH_EXPIRE_IN: env.JWT_REFRESH_EXPIRE_IN,
 
   CORS_ORIGIN: env.CORS_ORIGIN,
+
+  CLOUDINARY_CLOUD_NAME: env.CLOUDINARY_CLOUD_NAME,
+  CLOUDINARY_API_KEY: env.CLOUDINARY_API_KEY,
+  CLOUDINARY_API_SECRET: env.CLOUDINARY_API_SECRET,
 };

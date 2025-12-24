@@ -1,7 +1,8 @@
 import httpStatus from "http-status";
+import { File } from "multer";
 import { AppError } from "../../errors/app_error";
 import { userService } from "../user/user.service";
-import { ICar } from "./car.interface";
+import { ICar, ICreateCarPayload } from "./car.interface";
 import CarModel from "./car.model";
 
 export class CarService {
@@ -12,10 +13,34 @@ export class CarService {
   }
 
   // ✅ CREATE CAR
-  async createCar(data: ICar, userId: string) {
+  async registerCar(data: ICreateCarPayload, files: File[], userId: string) {
     await userService.makeCarOwner(userId);
-    const newCar = await CarModel.create({ ...data, user: userId });
+
+    // Cloudinary theke image URLs extract koro
+    const imageUrls = files.map((file) => file.path);
+
+    const carPayload: ICar = {
+      ...data,
+      features: {
+        ...data.features,
+        images: imageUrls,
+      },
+      user: userId,
+    };
+
+    const newCar = await CarModel.create(carPayload);
     return newCar;
+  }
+
+  // approve a car
+  async approveCar(carId: string) {
+    const car = await CarModel.findById(carId);
+    if (!car) {
+      throw new AppError(httpStatus.NOT_FOUND, "Car not found");
+    }
+    car.isApproved = true;
+    await car.save();
+    return car;
   }
 
   // 📌 GET ALL CARS

@@ -55,6 +55,14 @@ const CarSchema = new Schema<ICar>(
       ref: "User",
       required: true,
     },
+    isApproved: {
+      type: Boolean,
+      default: false,
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

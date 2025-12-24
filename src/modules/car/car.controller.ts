@@ -1,7 +1,10 @@
 import { Router } from "express";
 import httpStatus from "http-status";
+import { File } from "multer";
+import { AppError } from "../../errors/app_error";
 import { isAdmin } from "../../middleware/is_admin";
 import { isAuth } from "../../middleware/is_auth";
+import { upload } from "../../middleware/multer.middleware";
 import validateRequest from "../../middleware/validate_request.middleware";
 import catchAsync from "../../utils/catch_async.utils";
 import sendResponse from "../../utils/send_response.utils";
@@ -11,22 +14,50 @@ import { carValidation } from "./car.validation";
 const router = Router();
 
 // -------------------------
-// CREATE CAR
+// Register CAR
 // -------------------------
 router.post(
   "/",
   isAuth,
-  isAdmin,
-  validateRequest(carValidation.createCarValidationSchema),
+  upload.array("images", 5),
   catchAsync(async (req, res) => {
-    const carData = req.body;
+    const carData = JSON.parse(req.body.data);
+    carValidation.createCarValidationSchema.parse(carData);
+
+    const files = req.files as File[];
     const userId = req.user._id as string;
-    const car = await carService.createCar(carData, userId);
+
+    if (!files || files.length === 0) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "At least one image is required"
+      );
+    }
+
+    const car = await carService.registerCar(carData, files, userId);
 
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.CREATED,
       message: "Car created successfully",
+      data: car,
+    });
+  })
+);
+
+// approve a car
+router.patch(
+  "/:id/approve",
+  isAuth,
+  isAdmin,
+  catchAsync(async (req, res) => {
+    const { id } = req.params;
+    const car = await carService.approveCar(id);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Car approved successfully",
       data: car,
     });
   })

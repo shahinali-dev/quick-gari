@@ -22,10 +22,6 @@ const featureSchema = z.object({
 
   gearType: z.enum([GearType.MANUAL, GearType.AUTOMATIC]),
 
-  images: z
-    .array(z.string().url("Invalid image URL"))
-    .min(1, "Images required"),
-
   seat: z.number().min(1, "Seat must be at least 1"),
 });
 
