@@ -11,6 +11,7 @@ export interface IUser {
   avatar?: string;
   phoneNumber: string;
   gender: Gender;
+  isCarOwner: boolean;
 }
 
 export interface ISignIn {
@@ -27,6 +28,7 @@ export interface IAuthUser {
   phoneNumber: string;
   provider: string;
   gender: Gender;
+  isCarOwner: boolean;
   createdAt: string;
   updatedAt: string;
   __v: number;
