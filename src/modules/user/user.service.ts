@@ -1,6 +1,11 @@
 import httpStatus from "http-status";
+import config from "../../config";
 import { AppError } from "../../errors/app_error";
+import createToken from "../../utils/create_token";
+import { OTPUtils } from "../../utils/otp_utils";
 import passwordUtils from "../../utils/password_utils";
+import { EmailService } from "../email/email.service";
+import { OTP_CONFIG } from "./user.enum";
 import { IUser } from "./user.interface";
 import UserModel from "./user.model";
 
@@ -10,29 +15,131 @@ export class UserService {
     return existingUser;
   }
 
-  async registerUser(user: IUser) {
-    const existingUser = await this.isExist(user.email);
-    if (existingUser) {
-      throw new AppError(httpStatus.BAD_REQUEST, "User already exist");
-    }
+  async registerUser(userData: IUser, ip: string, userAgent: string) {
+    const { password, ...user } = userData;
 
-    const { password, ...rest } = user;
+    // Validate that password exists (TypeScript check)
     if (!password) {
       throw new AppError(httpStatus.BAD_REQUEST, "Password is required");
     }
 
+    const existingUser = await this.isExist(user.email);
+
+    // User Existence Leak - Don't reveal if user exists
+    if (existingUser) {
+      // If user exists but not verified, allow re-registration
+      if (!existingUser.isVerified) {
+        // Generate new OTP and update existing user
+        const otp = OTPUtils.generateSecureOTP();
+        const hashedOTP = OTPUtils.hashOTP(otp);
+        const otpExpiry = new Date(Date.now() + OTP_CONFIG.EXPIRY_DURATION);
+        const deviceFingerprint = OTPUtils.generateDeviceFingerprint(
+          ip,
+          userAgent
+        );
+
+        existingUser.otp = hashedOTP;
+        existingUser.otpExpiry = otpExpiry;
+        existingUser.otpAttempts = 0;
+        existingUser.lastOtpSentAt = new Date();
+        existingUser.otpDeviceFingerprint = deviceFingerprint;
+        existingUser.password = password;
+        await existingUser.save();
+
+        const userWithoutPassword = await UserModel.findById(
+          existingUser._id
+        ).select("-password");
+
+        const jwtPayload = {
+          _id: userWithoutPassword!._id.toString(),
+          email: userWithoutPassword!.email,
+        };
+
+        const verifyToken = createToken(
+          jwtPayload,
+          config.JWT_VERIFY_SECRET,
+          config.JWT_VERIFY_EXPIRE_IN
+        );
+
+        await EmailService.sendOTPEmail(
+          userWithoutPassword!.email,
+          userWithoutPassword!.name,
+          otp,
+          true
+        );
+
+        return {
+          user: userWithoutPassword,
+          verifyToken,
+        };
+      }
+
+      // If verified user exists, still return success but don't reveal
+      // This prevents user enumeration attacks
+      throw new AppError(
+        httpStatus.CONFLICT, // 409 status code
+        "An account with this email already exists. Please login instead."
+      );
+    }
+
     const hashedPassword = await passwordUtils.hash(password);
+
+    // Generate and HASH OTP
+    const otp = OTPUtils.generateSecureOTP();
+    const hashedOTP = OTPUtils.hashOTP(otp);
+    const otpExpiry = new Date(Date.now() + OTP_CONFIG.EXPIRY_DURATION);
+    const deviceFingerprint = OTPUtils.generateDeviceFingerprint(ip, userAgent);
+
     const newUser = await UserModel.create({
-      ...rest,
+      ...user,
       password: hashedPassword,
+      otp: hashedOTP,
+      otpExpiry,
+      isVerified: false,
+      otpAttempts: 0,
+      lastOtpSentAt: new Date(),
+      otpDeviceFingerprint: deviceFingerprint,
     });
 
-    return await UserModel.findById(newUser._id).select("-password");
+    const userWithoutPassword = await UserModel.findById(newUser._id).select(
+      "-password"
+    );
+
+    const jwtPayload = {
+      _id: userWithoutPassword!._id.toString(),
+      email: userWithoutPassword!.email,
+    };
+
+    const verifyToken = createToken(
+      jwtPayload,
+      config.JWT_VERIFY_SECRET,
+      config.JWT_VERIFY_EXPIRE_IN
+    );
+
+    // Send plain OTP to email (email encryption is handled by TLS)
+
+    await EmailService.sendOTPEmail(
+      userWithoutPassword!.email,
+      userWithoutPassword!.name,
+      otp,
+      false
+    );
+
+    return {
+      user: userWithoutPassword,
+      verifyToken,
+    };
   }
 
   async getAllUsers() {
     const users = await UserModel.find().select("-password");
     return users;
+  }
+
+  async getUserForOtpVerification(id: string) {
+    return await UserModel.findById(id).select(
+      "+otp +otpExpiry +otpAttempts +otpBlockedUntil +lastOtpSentAt"
+    );
   }
 
   async makeCarOwner(userId: true) {

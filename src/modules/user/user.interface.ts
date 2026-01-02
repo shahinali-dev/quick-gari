@@ -29,6 +29,13 @@ export interface IAuthUser {
   provider: string;
   gender: Gender;
   isCarOwner: boolean;
+  isVerified: boolean;
+  otp?: string;
+  otpExpiry?: Date;
+  otpAttempts?: number;
+  otpBlockedUntil?: Date;
+  lastOtpSentAt?: Date;
+  otpDeviceFingerprint?: string;
   createdAt: string;
   updatedAt: string;
   __v: number;

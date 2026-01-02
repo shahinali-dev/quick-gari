@@ -20,6 +20,32 @@ const userSchema = new Schema<IUser>(
     phoneNumber: { type: String, required: true },
     gender: { type: String, enum: ["male", "female"], required: true },
     isCarOwner: { type: Boolean, default: false },
+    isVerified: { type: Boolean, default: false },
+    otp: {
+      type: String,
+      select: false,
+    },
+    otpExpiry: {
+      type: Date,
+      select: false,
+    },
+    otpAttempts: {
+      type: Number,
+      default: 0,
+      select: false,
+    },
+    otpBlockedUntil: {
+      type: Date,
+      select: false,
+    },
+    lastOtpSentAt: {
+      type: Date,
+      select: false,
+    },
+    otpDeviceFingerprint: {
+      type: String,
+      select: false,
+    },
   },
   {
     timestamps: true,

@@ -2,6 +2,7 @@ import { Router } from "express";
 import httpStatus from "http-status";
 import { isAdmin } from "../../middleware/is_admin";
 import { isAuth } from "../../middleware/is_auth";
+import { registrationLimiter } from "../../middleware/otp_limiter";
 import validateRequest from "../../middleware/validate_request.middleware";
 import catchAsync from "../../utils/catch_async.utils";
 import sendResponse from "../../utils/send_response.utils";
@@ -12,10 +13,30 @@ const router = Router();
 
 router.post(
   "/register",
+  registrationLimiter,
   validateRequest(userValidation.baseUserValidationSchema),
   catchAsync(async (req, res) => {
     const userData = req.body;
-    const user = await userService.registerUser(userData);
+    // Get IP and User-Agent for device fingerprinting
+    const ip =
+      (req.headers["x-forwarded-for"] as string)?.split(",")[0] ||
+      req.socket.remoteAddress ||
+      "unknown";
+    const userAgent = req.headers["user-agent"] || "unknown";
+
+    const user = await userService.registerUser(userData, ip, userAgent);
+
+    const clientType = req.headers["x-client-type"];
+
+    if (clientType === "web") {
+      // Web flow: cookie-based
+      res.cookie("verifyToken", user.verifyToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 1 * 24 * 60 * 60 * 1000,
+      });
+    }
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.CREATED,
