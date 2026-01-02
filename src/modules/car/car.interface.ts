@@ -20,6 +20,7 @@ export interface IFeature {
 }
 
 export interface ICar {
+  _id: string;
   carName: string;
   specification: ISpecification;
   features: IFeature;

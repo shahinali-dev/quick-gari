@@ -1,0 +1,26 @@
+import { model, Schema } from "mongoose";
+import { IRide } from "./ride.interface";
+
+const rideSchema = new Schema<IRide>(
+  {
+    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    startLocation: { type: String, required: true },
+    endLocation: { type: String, required: true },
+    distance: { type: Number, required: true },
+    date: { type: Date, required: true },
+    startTime: { type: Date, required: true },
+    fare: { type: Number, required: true },
+    status: {
+      type: String,
+      enum: ["REQUESTED", "ACCEPTED", "REJECTED", "COMPLETED", "CANCELLED"],
+      default: "REQUESTED",
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+const RideModel = model<IRide>("Ride", rideSchema);
+
+export default RideModel;
