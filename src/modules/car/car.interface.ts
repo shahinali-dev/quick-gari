@@ -26,6 +26,8 @@ export interface ICar {
   user: string | Types.ObjectId | IUser;
   createdAt?: Date;
   updatedAt?: Date;
+  isApproved?: boolean;
+  isDeleted?: boolean;
 }
 
 export interface ICreateCarPayload {

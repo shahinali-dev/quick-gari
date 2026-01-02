@@ -1,7 +1,7 @@
 import { Types } from "mongoose";
 
 interface IJWTPayload {
-  _id: Types.ObjectId;
+  _id: string | Types.ObjectId;
   email: string;
   role: string;
 }

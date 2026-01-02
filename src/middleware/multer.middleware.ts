@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import httpStatus from "http-status";
-import multer, { File } from "multer";
+import multer from "multer";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import { AppError } from "../errors/app_error";
 import cloudinary from "../lib/cloudinary.config";
@@ -14,7 +14,7 @@ const storage = new CloudinaryStorage({
   } as any,
 });
 
-const fileFilter = (req: any, file: File, cb: any) => {
+const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
   const allowedMimes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
   if (allowedMimes.includes(file.mimetype)) {

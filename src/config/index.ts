@@ -26,6 +26,7 @@ const envSchema = z.object({
   JWT_VERIFY_EXPIRE_IN: z.string().min(1, "JWT_VERIFY_EXPIRE_IN is required"),
 
   CORS_ORIGIN: z.string().min(1, "CORS_ORIGIN is required").optional(),
+  BASE_URL: z.string().optional(),
   CLOUDINARY_CLOUD_NAME: z.string().min(1, "CLOUDINARY_CLOUD_NAME is required"),
   CLOUDINARY_API_KEY: z.string().min(1, "CLOUDINARY_API_KEY is required"),
   CLOUDINARY_API_SECRET: z.string().min(1, "CLOUDINARY_API_SECRET is required"),
@@ -69,4 +70,5 @@ export default {
 
   APP_EMAIL: env.APP_EMAIL,
   APP_PASSWORD: env.APP_PASSWORD,
+  BASE_URL: env.BASE_URL,
 };

@@ -1,5 +1,4 @@
 import httpStatus from "http-status";
-import { File } from "multer";
 import { AppError } from "../../errors/app_error";
 import { userService } from "../user/user.service";
 import { ICar, ICreateCarPayload } from "./car.interface";
@@ -13,7 +12,11 @@ export class CarService {
   }
 
   // ✅ CREATE CAR
-  async registerCar(data: ICreateCarPayload, files: File[], userId: string) {
+  async registerCar(
+    data: ICreateCarPayload,
+    files: Express.Multer.File[],
+    userId: string
+  ) {
     await userService.makeCarOwner(userId);
 
     // Cloudinary theke image URLs extract koro

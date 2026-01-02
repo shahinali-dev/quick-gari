@@ -52,7 +52,7 @@ export class AuthService {
     return { user: rest, accessToken, refreshToken };
   }
 
-  async getAuthUser(id: Types.ObjectId) {
+  async getAuthUser(id: string | Types.ObjectId) {
     const user = await UserModel.findById(id).select("-password");
     return user;
   }

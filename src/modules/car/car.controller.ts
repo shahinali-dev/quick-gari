@@ -1,6 +1,6 @@
 import { Router } from "express";
 import httpStatus from "http-status";
-import { File } from "multer";
+
 import { AppError } from "../../errors/app_error";
 import { isAdmin } from "../../middleware/is_admin";
 import { isAuth } from "../../middleware/is_auth";
@@ -24,8 +24,8 @@ router.post(
     const carData = JSON.parse(req.body.data);
     carValidation.createCarValidationSchema.parse(carData);
 
-    const files = req.files as File[];
-    const userId = req.user._id as string;
+    const files = req.files as Express.Multer.File[];
+    const userId = req.user!._id.toString();
 
     if (!files || files.length === 0) {
       throw new AppError(

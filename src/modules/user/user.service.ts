@@ -53,6 +53,7 @@ export class UserService {
         const jwtPayload = {
           _id: userWithoutPassword!._id.toString(),
           email: userWithoutPassword!.email,
+          role: userWithoutPassword!.role,
         };
 
         const verifyToken = createToken(
@@ -108,6 +109,7 @@ export class UserService {
     const jwtPayload = {
       _id: userWithoutPassword!._id.toString(),
       email: userWithoutPassword!.email,
+      role: userWithoutPassword!.role,
     };
 
     const verifyToken = createToken(
@@ -142,7 +144,7 @@ export class UserService {
     );
   }
 
-  async makeCarOwner(userId: true) {
+  async makeCarOwner(userId: string) {
     const user = await UserModel.findById(userId);
     if (!user) {
       throw new AppError(httpStatus.NOT_FOUND, "Car owner not found");

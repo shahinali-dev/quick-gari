@@ -12,6 +12,15 @@ export interface IUser {
   phoneNumber: string;
   gender: Gender;
   isCarOwner: boolean;
+  isVerified?: boolean;
+  otp?: string;
+  otpExpiry?: Date;
+  otpAttempts?: number;
+  otpBlockedUntil?: Date;
+  lastOtpSentAt?: Date;
+  otpDeviceFingerprint?: string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
 }
 
 export interface ISignIn {
