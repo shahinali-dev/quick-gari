@@ -1,15 +1,18 @@
 import { Router } from "express";
 import httpStatus from "http-status";
 import { isAuth } from "../../middleware/is_auth";
+import validateRequest from "../../middleware/validate_request.middleware";
 import catchAsync from "../../utils/catch_async.utils";
 import sendResponse from "../../utils/send_response.utils";
 import { rideService } from "./ride.service";
+import { rideValidation } from "./ride.validation";
 
 const router = Router();
 
 router.post(
   "/",
   isAuth,
+  validateRequest(rideValidation.rideValidationSchema),
   catchAsync(async (req, res) => {
     const data = req.body;
     const userId = req.user!._id.toString();
@@ -23,3 +26,23 @@ router.post(
     });
   }),
 );
+
+router.post(
+  "/accept",
+  isAuth,
+  catchAsync(async (req, res) => {
+    const data = req.body;
+    const userId = req.user!._id.toString();
+    const ride = await rideService.acceptRide(data.rideId, userId, data.fare);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Ride accepted successfully",
+      data: ride,
+    });
+  }),
+);
+
+const rideRouter = router;
+export default rideRouter;

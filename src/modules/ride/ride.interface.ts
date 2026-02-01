@@ -5,6 +5,7 @@ import { RideStatus } from "./ride.enum";
 export interface IRide {
   _id?: Types.ObjectId;
   car?: string | Types.ObjectId | ICar;
+  driver?: Types.ObjectId;
   user: Types.ObjectId;
   startLocation: string;
   endLocation: string;

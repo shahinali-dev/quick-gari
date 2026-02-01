@@ -41,6 +41,21 @@ export class RideService {
 
     return newRide;
   }
+
+  async acceptRide(rideId: string, driverId: string, fare: number) {
+    const ride = await RideModel.findById(rideId);
+    if (!ride) {
+      throw new AppError(httpStatus.NOT_FOUND, "Ride not found");
+    }
+    if (ride.status !== RideStatus.REQUESTED) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Ride is Already Accepted");
+    }
+    ride.driver = driverId;
+    ride.fare = fare;
+    ride.status = RideStatus.ACCEPTED;
+    await ride.save();
+    return ride;
+  }
 }
 
 export const rideService = new RideService();
