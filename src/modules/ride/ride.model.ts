@@ -1,9 +1,11 @@
 import { model, Schema } from "mongoose";
+import { RideStatus } from "./ride.enum";
 import { IRide } from "./ride.interface";
 
 const rideSchema = new Schema<IRide>(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    car: { type: Schema.Types.ObjectId, ref: "Car" },
     startLocation: { type: String, required: true },
     endLocation: { type: String, required: true },
     distance: { type: Number, required: true },
@@ -12,13 +14,13 @@ const rideSchema = new Schema<IRide>(
     fare: { type: Number, required: true },
     status: {
       type: String,
-      enum: ["REQUESTED", "ACCEPTED", "REJECTED", "COMPLETED", "CANCELLED"],
-      default: "REQUESTED",
+      enum: Object.values(RideStatus),
+      default: RideStatus.REQUESTED,
     },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 const RideModel = model<IRide>("Ride", rideSchema);

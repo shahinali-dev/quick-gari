@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 import { Router } from "express";
 import httpStatus from "http-status";
 

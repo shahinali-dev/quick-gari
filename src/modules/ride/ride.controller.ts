@@ -12,11 +12,8 @@ router.post(
   isAuth,
   catchAsync(async (req, res) => {
     const data = req.body;
-    const user = req.user as string;
-    const ride = await rideService.requestForARide({
-      ...data,
-      user,
-    });
+    const userId = req.user!._id.toString();
+    const ride = await rideService.requestForARide(userId, data);
 
     sendResponse(res, {
       success: true,

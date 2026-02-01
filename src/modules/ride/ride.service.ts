@@ -20,16 +20,16 @@ export class RideService {
     return !!existingRide;
   }
 
-  async requestForARide(data: ICreateRidePayload) {
+  async requestForARide(userId: string, data: ICreateRidePayload) {
     const date = normalizeDate(new Date(data.date));
     const startTime = normalizeTime(new Date(data.startTime));
 
-    const isExistingRide = await this.isExist(data.user, date, startTime);
+    const isExistingRide = await this.isExist(userId, date, startTime);
 
     if (isExistingRide) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "You have already requested for a ride on this date and time"
+        "You have already requested for a ride on this date and time",
       );
     }
 
