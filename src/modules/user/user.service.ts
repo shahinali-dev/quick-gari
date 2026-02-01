@@ -35,7 +35,7 @@ export class UserService {
         const otpExpiry = new Date(Date.now() + OTP_CONFIG.EXPIRY_DURATION);
         const deviceFingerprint = OTPUtils.generateDeviceFingerprint(
           ip,
-          userAgent
+          userAgent,
         );
 
         existingUser.otp = hashedOTP;
@@ -47,7 +47,7 @@ export class UserService {
         await existingUser.save();
 
         const userWithoutPassword = await UserModel.findById(
-          existingUser._id
+          existingUser._id,
         ).select("-password");
 
         const jwtPayload = {
@@ -59,14 +59,14 @@ export class UserService {
         const verifyToken = createToken(
           jwtPayload,
           config.JWT_VERIFY_SECRET,
-          config.JWT_VERIFY_EXPIRE_IN
+          config.JWT_VERIFY_EXPIRE_IN,
         );
 
         await EmailService.sendOTPEmail(
           userWithoutPassword!.email,
           userWithoutPassword!.name,
           otp,
-          true
+          true,
         );
 
         return {
@@ -79,7 +79,7 @@ export class UserService {
       // This prevents user enumeration attacks
       throw new AppError(
         httpStatus.CONFLICT, // 409 status code
-        "An account with this email already exists. Please login instead."
+        "An account with this email already exists. Please login instead.",
       );
     }
 
@@ -103,7 +103,7 @@ export class UserService {
     });
 
     const userWithoutPassword = await UserModel.findById(newUser._id).select(
-      "-password"
+      "-password",
     );
 
     const jwtPayload = {
@@ -115,7 +115,7 @@ export class UserService {
     const verifyToken = createToken(
       jwtPayload,
       config.JWT_VERIFY_SECRET,
-      config.JWT_VERIFY_EXPIRE_IN
+      config.JWT_VERIFY_EXPIRE_IN,
     );
 
     // Send plain OTP to email (email encryption is handled by TLS)
@@ -124,7 +124,7 @@ export class UserService {
       userWithoutPassword!.email,
       userWithoutPassword!.name,
       otp,
-      false
+      false,
     );
 
     return {
@@ -140,7 +140,7 @@ export class UserService {
 
   async getUserForOtpVerification(id: string) {
     return await UserModel.findById(id).select(
-      "+otp +otpExpiry +otpAttempts +otpBlockedUntil +lastOtpSentAt"
+      "+otp +otpExpiry +otpAttempts +otpBlockedUntil +lastOtpSentAt",
     );
   }
 
@@ -151,6 +151,11 @@ export class UserService {
     }
     user.isCarOwner = true;
     await user.save();
+  }
+
+  async getUserById(id: string) {
+    const user = await UserModel.findById(id);
+    return user;
   }
 }
 

@@ -15,7 +15,7 @@ export class CarService {
   async registerCar(
     data: ICreateCarPayload,
     files: Express.Multer.File[],
-    userId: string
+    userId: string,
   ) {
     await userService.makeCarOwner(userId);
 
@@ -52,8 +52,23 @@ export class CarService {
     return cars;
   }
 
+  // Get approved cars
+  async getApprovedCars() {
+    const cars = await CarModel.find({ isApproved: true });
+    return cars;
+  }
+
   // 🔍 GET SINGLE CAR BY ID
   async getCarById(id: string) {
+    const car = await CarModel.findOne({ _id: id, isApproved: true });
+    if (!car) {
+      throw new AppError(httpStatus.NOT_FOUND, "Car not found");
+    }
+    return car;
+  }
+
+  // get car by id (admin)
+  async getCarByIdAdmin(id: string) {
     const car = await CarModel.findById(id);
     if (!car) {
       throw new AppError(httpStatus.NOT_FOUND, "Car not found");
@@ -62,7 +77,16 @@ export class CarService {
   }
 
   // ✏ UPDATE CAR
-  async updateCar(id: string, payload: Partial<ICar>) {
+  async updateCar(id: string, userId: string, payload: Partial<ICar>) {
+    const car = await CarModel.findById(id);
+
+    const isOwner = car?.user.toString() === userId;
+    const user = await userService.getUserById(userId);
+
+    if (!isOwner || user?.role !== "admin") {
+      throw new AppError(httpStatus.FORBIDDEN, "You are not allowed to update");
+    }
+
     const updated = await CarModel.findByIdAndUpdate(id, payload, {
       new: true,
       runValidators: true,
@@ -76,12 +100,17 @@ export class CarService {
   }
 
   // ❌ DELETE CAR
-  async deleteCar(id: string) {
-    const deleted = await CarModel.findByIdAndDelete(id);
+  async deleteCar(id: string, userId: string) {
+    const car = await CarModel.findById(id);
 
-    if (!deleted) {
-      throw new AppError(httpStatus.NOT_FOUND, "Car not found");
+    const isOwner = car?.user.toString() === userId;
+    const user = await userService.getUserById(userId);
+
+    if (!isOwner || user?.role !== "admin") {
+      throw new AppError(httpStatus.FORBIDDEN, "You are not allowed to delete");
     }
+
+    const deleted = await CarModel.findByIdAndDelete(id);
 
     return deleted;
   }

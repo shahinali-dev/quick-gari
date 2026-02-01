@@ -30,7 +30,7 @@ router.post(
     if (!files || files.length === 0) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "At least one image is required"
+        "At least one image is required",
       );
     }
 
@@ -42,7 +42,7 @@ router.post(
       message: "Car created successfully",
       data: car,
     });
-  })
+  }),
 );
 
 // approve a car
@@ -60,7 +60,7 @@ router.patch(
       message: "Car approved successfully",
       data: car,
     });
-  })
+  }),
 );
 
 // -------------------------
@@ -68,6 +68,8 @@ router.patch(
 // -------------------------
 router.get(
   "/",
+  isAuth,
+  isAdmin,
   catchAsync(async (req, res) => {
     const cars = await carService.getAllCars();
 
@@ -77,7 +79,22 @@ router.get(
       message: "All cars fetched successfully",
       data: cars,
     });
-  })
+  }),
+);
+
+//Get approved cars
+router.get(
+  "/approved",
+  catchAsync(async (req, res) => {
+    const cars = await carService.getApprovedCars();
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Approved cars fetched successfully",
+      data: cars,
+    });
+  }),
 );
 
 // -------------------------
@@ -95,7 +112,25 @@ router.get(
       message: "Car fetched successfully",
       data: car,
     });
-  })
+  }),
+);
+
+// get car by id (admin)
+router.get(
+  "/admin/:id",
+  isAuth,
+  isAdmin,
+  catchAsync(async (req, res) => {
+    const { id } = req.params;
+    const car = await carService.getCarByIdAdmin(id);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Car fetched successfully",
+      data: car,
+    });
+  }),
 );
 
 // -------------------------
@@ -104,13 +139,13 @@ router.get(
 router.patch(
   "/:id",
   isAuth,
-  isAdmin,
   validateRequest(carValidation.updateCarValidationSchema),
   catchAsync(async (req, res) => {
+    const userId = req.user!._id.toString();
     const { id } = req.params;
     const payload = req.body;
 
-    const updatedCar = await carService.updateCar(id, payload);
+    const updatedCar = await carService.updateCar(id, userId, payload);
 
     sendResponse(res, {
       success: true,
@@ -118,7 +153,7 @@ router.patch(
       message: "Car updated successfully",
       data: updatedCar,
     });
-  })
+  }),
 );
 
 // -------------------------
@@ -129,8 +164,9 @@ router.delete(
   isAuth,
   isAdmin,
   catchAsync(async (req, res) => {
+    const userId = req.user!._id.toString();
     const { id } = req.params;
-    const deletedCar = await carService.deleteCar(id);
+    const deletedCar = await carService.deleteCar(id, userId);
 
     sendResponse(res, {
       success: true,
@@ -138,7 +174,7 @@ router.delete(
       message: "Car deleted successfully",
       data: deletedCar,
     });
-  })
+  }),
 );
 
 export const carRoute = router;
