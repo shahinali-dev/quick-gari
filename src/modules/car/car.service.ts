@@ -1,7 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import httpStatus from "http-status";
 import { AppError } from "../../errors/app_error";
 import { userService } from "../user/user.service";
-import { ICar, ICreateCarPayload } from "./car.interface";
+import { ICar, ICreateCarPayload, IFeature } from "./car.interface";
 import CarModel from "./car.model";
 
 export class CarService {
@@ -77,8 +80,17 @@ export class CarService {
   }
 
   // ✏ UPDATE CAR
-  async updateCar(id: string, userId: string, payload: Partial<ICar>) {
+  async updateCar(
+    id: string,
+    userId: string,
+    payload: Partial<ICar>,
+    files: Express.Multer.File[],
+  ) {
     const car = await CarModel.findById(id);
+
+    if (!car) {
+      throw new AppError(httpStatus.NOT_FOUND, "Car not found");
+    }
 
     const isOwner = car?.user.toString() === userId;
     const user = await userService.getUserById(userId);
@@ -87,14 +99,27 @@ export class CarService {
       throw new AppError(httpStatus.FORBIDDEN, "You are not allowed to update");
     }
 
-    const updated = await CarModel.findByIdAndUpdate(id, payload, {
+    const updatedPayload: Partial<ICar> = { ...payload };
+
+    if (files && files.length > 0) {
+      const imageUrls = files.map((file) => file.path);
+      updatedPayload.features = {
+        ...car.features,
+        ...payload.features,
+        images: imageUrls,
+      } as IFeature;
+    } else if (payload.features) {
+      const { images, ...restFeatures } = payload.features as any;
+      updatedPayload.features = {
+        ...car.features,
+        ...restFeatures,
+      } as IFeature;
+    }
+
+    const updated = await CarModel.findByIdAndUpdate(id, updatedPayload, {
       new: true,
       runValidators: true,
     });
-
-    if (!updated) {
-      throw new AppError(httpStatus.NOT_FOUND, "Car not found");
-    }
 
     return updated;
   }

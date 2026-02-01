@@ -16,11 +16,11 @@ export interface IFeature {
   fuelType: FuelType;
   gearType: GearType;
   images: string[];
-  seat: number; // <-- NEW
+  seat: number;
 }
 
 export interface ICar {
-  _id: string;
+  _id?: string;
   carName: string;
   specification: ISpecification;
   features: IFeature;

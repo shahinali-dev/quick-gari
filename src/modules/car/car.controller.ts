@@ -5,7 +5,6 @@ import { AppError } from "../../errors/app_error";
 import { isAdmin } from "../../middleware/is_admin";
 import { isAuth } from "../../middleware/is_auth";
 import { upload } from "../../middleware/multer.middleware";
-import validateRequest from "../../middleware/validate_request.middleware";
 import catchAsync from "../../utils/catch_async.utils";
 import sendResponse from "../../utils/send_response.utils";
 import { carService } from "./car.service";
@@ -139,13 +138,16 @@ router.get(
 router.patch(
   "/:id",
   isAuth,
-  validateRequest(carValidation.updateCarValidationSchema),
+  upload.array("images", 5),
   catchAsync(async (req, res) => {
     const userId = req.user!._id.toString();
     const { id } = req.params;
-    const payload = req.body;
 
-    const updatedCar = await carService.updateCar(id, userId, payload);
+    const payload = JSON.parse(req.body.data);
+    carValidation.updateCarValidationSchema.parse(payload);
+    const files = req.files as Express.Multer.File[];
+
+    const updatedCar = await carService.updateCar(id, userId, payload, files);
 
     sendResponse(res, {
       success: true,

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import httpStatus from "http-status";
-import { isAuth } from "../../mdataiddleware/is_auth";
+import { isAuth } from "../../middleware/is_auth";
 import catchAsync from "../../utils/catch_async.utils";
 import sendResponse from "../../utils/send_response.utils";
 import { rideService } from "./ride.service";
@@ -24,5 +24,5 @@ router.post(
       message: "Ride requested successfully",
       data: ride,
     });
-  })
+  }),
 );

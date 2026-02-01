@@ -23,9 +23,9 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
     cb(
       new AppError(
         httpStatus.BAD_REQUEST,
-        "Invalid file type. Only JPEG, PNG and WebP allowed"
+        "Invalid file type. Only JPEG, PNG and WebP allowed",
       ),
-      false
+      false,
     );
   }
 };
