@@ -44,5 +44,20 @@ router.post(
   }),
 );
 
+router.get(
+  "/pending",
+  isAuth,
+  catchAsync(async (req, res) => {
+    const rides = await rideService.getPendingRides();
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Pending rides fetched successfully",
+      data: rides,
+    });
+  }),
+);
+
 const rideRouter = router;
 export default rideRouter;

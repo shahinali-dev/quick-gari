@@ -1,0 +1,351 @@
+<!-- socket-test.html -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Socket.IO Tester</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 50px auto;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .container {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      h1 {
+        color: #333;
+      }
+      .status {
+        padding: 10px;
+        border-radius: 5px;
+        margin: 10px 0;
+        font-weight: bold;
+      }
+      .connected {
+        background: #d4edda;
+        color: #155724;
+      }
+      .disconnected {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .notification {
+        background: #cce5ff;
+        border-left: 4px solid #007bff;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 5px;
+        animation: slideIn 0.3s ease;
+      }
+      @keyframes slideIn {
+        from {
+          transform: translateX(-20px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      input,
+      button {
+        padding: 10px;
+        margin: 5px;
+        font-size: 16px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+      }
+      input {
+        width: 300px;
+      }
+      button {
+        background: #007bff;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      button:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+      }
+      #notifications {
+        margin-top: 20px;
+      }
+      .time {
+        color: #666;
+        font-size: 12px;
+      }
+      .settings {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 15px 0;
+      }
+      .error {
+        background: #f8d7da;
+        color: #721c24;
+        padding: 10px;
+        border-radius: 5px;
+        margin: 10px 0;
+      }
+      pre {
+        font-size: 12px;
+        background: #f8f9fa;
+        padding: 10px;
+        margin-top: 10px;
+        border-radius: 5px;
+        overflow-x: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🔌 Socket.IO Real-time Notification Tester</h1>
+
+      <div class="settings">
+        <h3>⚙️ Settings</h3>
+        <div>
+          <label>Server URL:</label>
+          <input
+            type="text"
+            id="serverUrl"
+            placeholder="http://localhost:5000"
+            value="http://localhost:5000"
+          />
+        </div>
+        <div>
+          <label>User ID:</label>
+          <input
+            type="text"
+            id="userId"
+            placeholder="Enter your user ID"
+            value="user123"
+          />
+        </div>
+        <div style="margin-top: 10px">
+          <button id="connectBtn" onclick="connectSocket()">Connect</button>
+          <button id="disconnectBtn" onclick="disconnectSocket()" disabled>
+            Disconnect
+          </button>
+          <button onclick="clearNotifications()">Clear Notifications</button>
+        </div>
+      </div>
+
+      <div id="status" class="status disconnected">❌ Disconnected</div>
+
+      <div id="error" style="display: none" class="error"></div>
+
+      <div
+        id="connectionInfo"
+        style="
+          display: none;
+          background: #e7f3ff;
+          padding: 10px;
+          border-radius: 5px;
+          margin: 10px 0;
+        "
+      >
+        <strong>Connection Info:</strong>
+        <div>Socket ID: <span id="socketId">-</span></div>
+        <div>Transport: <span id="transport">-</span></div>
+      </div>
+
+      <div id="notifications">
+        <h3>📬 Notifications (<span id="notificationCount">0</span>):</h3>
+        <div id="notificationList"></div>
+      </div>
+    </div>
+
+    <script>
+      let socket = null;
+      let notificationCount = 0;
+
+      function showError(message) {
+        const errorDiv = document.getElementById("error");
+        errorDiv.textContent = "❌ " + message;
+        errorDiv.style.display = "block";
+        setTimeout(() => {
+          errorDiv.style.display = "none";
+        }, 5000);
+      }
+
+      function updateConnectionInfo() {
+        if (socket && socket.connected) {
+          document.getElementById("connectionInfo").style.display = "block";
+          document.getElementById("socketId").textContent = socket.id;
+          document.getElementById("transport").textContent =
+            socket.io.engine.transport.name;
+        } else {
+          document.getElementById("connectionInfo").style.display = "none";
+        }
+      }
+
+      function connectSocket() {
+        const serverUrl = document.getElementById("serverUrl").value.trim();
+        const userId = document.getElementById("userId").value.trim();
+
+        if (!serverUrl) {
+          showError("Please enter server URL");
+          return;
+        }
+
+        if (!userId) {
+          showError("Please enter a user ID");
+          return;
+        }
+
+        // Disconnect existing connection
+        if (socket) {
+          socket.disconnect();
+        }
+
+        console.log("🔌 Connecting to:", serverUrl);
+
+        // Connect to Socket.IO server
+        socket = io(serverUrl, {
+          transports: ["websocket", "polling"],
+          reconnection: true,
+          reconnectionDelay: 1000,
+          reconnectionAttempts: 5,
+        });
+
+        // Connection successful
+        socket.on("connect", () => {
+          console.log("✅ Connected to server");
+          console.log("Socket ID:", socket.id);
+
+          document.getElementById("status").className = "status connected";
+          document.getElementById("status").textContent =
+            "✅ Connected (Socket ID: " + socket.id + ")";
+          document.getElementById("connectBtn").disabled = true;
+          document.getElementById("disconnectBtn").disabled = false;
+
+          updateConnectionInfo();
+
+          // Send user ID to server
+          socket.emit("user:connect", userId);
+          console.log(`📤 Sent user:connect with userId: ${userId}`);
+
+          addSystemMessage(`Connected as user: ${userId}`);
+        });
+
+        // Disconnected
+        socket.on("disconnect", (reason) => {
+          console.log("❌ Disconnected:", reason);
+          document.getElementById("status").className = "status disconnected";
+          document.getElementById("status").textContent =
+            "❌ Disconnected (" + reason + ")";
+          document.getElementById("connectBtn").disabled = false;
+          document.getElementById("disconnectBtn").disabled = true;
+          updateConnectionInfo();
+
+          addSystemMessage(`Disconnected: ${reason}`);
+        });
+
+        // Connection error
+        socket.on("connect_error", (error) => {
+          console.error("❌ Connection error:", error);
+          showError(
+            `Connection failed: ${error.message}. Check if server is running on ${serverUrl}`,
+          );
+
+          addSystemMessage(`Connection error: ${error.message}`);
+        });
+
+        // Listen for notifications
+        socket.on("notification:new", (notification) => {
+          console.log("🔔 New notification:", notification);
+          addNotification(notification);
+        });
+
+        // Reconnecting
+        socket.io.on("reconnect_attempt", () => {
+          console.log("🔄 Attempting to reconnect...");
+          addSystemMessage("Attempting to reconnect...");
+        });
+
+        // Reconnected
+        socket.io.on("reconnect", () => {
+          console.log("✅ Reconnected");
+          addSystemMessage("Reconnected successfully");
+        });
+      }
+
+      function disconnectSocket() {
+        if (socket) {
+          socket.disconnect();
+          socket = null;
+        }
+      }
+
+      function addSystemMessage(message) {
+        const notificationList = document.getElementById("notificationList");
+        const time = new Date().toLocaleTimeString();
+
+        const div = document.createElement("div");
+        div.style.cssText =
+          "background: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin: 10px 0; border-radius: 5px;";
+        div.innerHTML = `
+        <div><strong>ℹ️ SYSTEM</strong></div>
+        <div>${message}</div>
+        <div class="time">${time}</div>
+      `;
+
+        notificationList.insertBefore(div, notificationList.firstChild);
+      }
+
+      function addNotification(notification) {
+        notificationCount++;
+        document.getElementById("notificationCount").textContent =
+          notificationCount;
+
+        const notificationList = document.getElementById("notificationList");
+        const time = new Date().toLocaleTimeString();
+
+        const div = document.createElement("div");
+        div.className = "notification";
+        div.innerHTML = `
+        <div><strong>🔔 ${notification.type || "NOTIFICATION"}</strong></div>
+        <div>${notification.message}</div>
+        <div class="time">${time}</div>
+        <pre>${JSON.stringify(notification, null, 2)}</pre>
+      `;
+
+        notificationList.insertBefore(div, notificationList.firstChild);
+
+        // Play sound (optional)
+        // new Audio('notification.mp3').play();
+      }
+
+      function clearNotifications() {
+        document.getElementById("notificationList").innerHTML = "";
+        notificationCount = 0;
+        document.getElementById("notificationCount").textContent = "0";
+      }
+
+      // Keyboard shortcuts
+      document.addEventListener("keydown", (e) => {
+        if (e.ctrlKey && e.key === "Enter") {
+          if (!socket || !socket.connected) {
+            connectSocket();
+          }
+        }
+        if (e.ctrlKey && e.key === "d") {
+          e.preventDefault();
+          disconnectSocket();
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -33,6 +33,7 @@ const envSchema = z.object({
 
   APP_EMAIL: z.string().min(1, "APP_EMAIL is required"),
   APP_PASSWORD: z.string().min(1, "APP_PASSWORD is required"),
+  CLIENT_URL: z.string().min(1, "CLIENT_URL is required").optional(),
 });
 
 // Parse & return validated env
@@ -71,4 +72,5 @@ export default {
   APP_EMAIL: env.APP_EMAIL,
   APP_PASSWORD: env.APP_PASSWORD,
   BASE_URL: env.BASE_URL,
+  CLIENT_URL: env.CLIENT_URL,
 };
