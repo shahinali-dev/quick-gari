@@ -7,16 +7,22 @@ const rideValidationSchema = z.object({
   startTime: z.string().min(1, "Start time is required"),
 });
 
-const acceptRideValidationSchema = z.object({
+const proposalValidationSchema = z.object({
   rideId: z.string().min(1, "Ride ID is required"),
-  driverId: z.string().min(1, "Driver ID is required"),
   fare: z.string().min(1, "Fare is required"),
+  message: z.string().optional(),
+});
+
+const acceptProposalValidationSchema = z.object({
+  rideId: z.string({ required_error: "Ride ID is required" }),
+  proposalId: z.string().min(1, "Proposal ID is required"),
 });
 
 export const rideValidation = {
   rideValidationSchema,
-  acceptRideValidationSchema,
+  proposalValidationSchema,
+  acceptProposalValidationSchema,
 };
 
 export type ICreateRidePayload = z.infer<typeof rideValidationSchema>;
-export type IAcceptRidePayload = z.infer<typeof acceptRideValidationSchema>;
+export type IAcceptRidePayload = z.infer<typeof proposalValidationSchema>;

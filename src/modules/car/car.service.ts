@@ -139,6 +139,12 @@ export class CarService {
 
     return deleted;
   }
+
+  // get car by user id
+  async getCarsByUserId(userId: string) {
+    const cars = await CarModel.findOne({ user: userId });
+    return cars;
+  }
 }
 
 // Export singleton instance

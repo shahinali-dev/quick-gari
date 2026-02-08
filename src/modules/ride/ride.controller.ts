@@ -28,33 +28,80 @@ router.post(
 );
 
 router.post(
-  "/accept",
+  "/proposal",
   isAuth,
+  validateRequest(rideValidation.proposalValidationSchema),
   catchAsync(async (req, res) => {
-    const data = req.body;
-    const userId = req.user!._id.toString();
-    const ride = await rideService.acceptRide(data.rideId, userId, data.fare);
+    const { rideId, fare, message } = req.body;
+    const driverId = req.user!._id.toString();
+
+    const ride = await rideService.submitProposal(
+      rideId,
+      driverId,
+      fare,
+      message,
+    );
 
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.OK,
-      message: "Ride accepted successfully",
+      message: "Proposal submitted successfully",
+      data: ride,
+    });
+  }),
+);
+
+router.post(
+  "/accept-proposal",
+  isAuth,
+  validateRequest(rideValidation.acceptProposalValidationSchema),
+  catchAsync(async (req, res) => {
+    const { rideId, proposalId } = req.body;
+    const userId = req.user!._id.toString();
+
+    const ride = await rideService.acceptProposal(rideId, userId, proposalId);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Proposal accepted successfully",
       data: ride,
     });
   }),
 );
 
 router.get(
-  "/pending",
+  "/:rideId/proposals",
   isAuth,
   catchAsync(async (req, res) => {
-    const rides = await rideService.getPendingRides();
+    const { rideId } = req.params;
+    const userId = req.user!._id.toString();
+
+    const proposals = await rideService.getRideProposals(rideId, userId);
 
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.OK,
-      message: "Pending rides fetched successfully",
-      data: rides,
+      message: "Proposals fetched successfully",
+      data: proposals,
+    });
+  }),
+);
+
+router.get(
+  "/:rideId",
+  isAuth,
+  catchAsync(async (req, res) => {
+    const { rideId } = req.params;
+    const userId = req.user!._id.toString();
+
+    const ride = await rideService.getRideById(rideId, userId);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Ride fetched successfully",
+      data: ride,
     });
   }),
 );
