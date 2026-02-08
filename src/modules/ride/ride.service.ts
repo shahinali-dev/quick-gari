@@ -10,14 +10,11 @@ import { ICreateRidePayload } from "./ride.validation";
 
 export class RideService {
   async isExist(userId: string, date: Date, startTime: Date) {
-    const normalizedDate = normalizeDate(date);
-    const normalizedTime = normalizeTime(startTime);
-
     const existingRide = await RideModel.findOne({
       user: userId,
       status: RideStatus.REQUESTED,
-      date: normalizedDate,
-      startTime: normalizedTime,
+      date: date,
+      startTime: startTime,
     });
 
     return !!existingRide;
