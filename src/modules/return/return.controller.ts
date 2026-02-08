@@ -40,7 +40,8 @@ router.get(
       success: true,
       statusCode: httpStatus.OK,
       message: "Return rides fetched successfully",
-      data: returnRides,
+      meta: returnRides.meta,
+      data: returnRides.result,
     });
   }),
 );

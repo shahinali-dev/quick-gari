@@ -1,6 +1,7 @@
 import httpStatus from "http-status";
 import { AppError } from "../../errors/app_error";
 import { normalizeDate, normalizeTime } from "../../utils/normalize";
+import QueryBuilder from "../../utils/query_builder.utils";
 import { notificationService } from "../notification/notification.service";
 import { ReturnStatus } from "./return.enum";
 import ReturnModel from "./return.model";
@@ -40,22 +41,30 @@ export class ReturnService {
     return newReturnRide;
   }
 
-  async getAllReturnRides() {
-    const returnRides = await ReturnModel.find({
-      status: ReturnStatus.AVAILABLE,
-    })
-      .populate("driver", "name phoneNumber profileImage rating")
-      .populate("car", "model brand color licensePlate")
-      .sort({ createdAt: -1 });
+  async getAllReturnRides(query: Record<string, unknown>) {
+    const returnTripsQuery = new QueryBuilder(
+      ReturnModel.find({ status: ReturnStatus.AVAILABLE })
+        .populate("driver", "name phoneNumber avatar")
+        .populate("car"),
+      query,
+    )
+      .search(["startLocation", "endLocation"])
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
 
-    return returnRides;
+    const result = await returnTripsQuery.modelQuery;
+    const meta = await returnTripsQuery.countTotal();
+
+    return { result, meta };
   }
 
   async getReturnRideById(id: string) {
     const returnRide = await ReturnModel.findById(id)
-      .populate("driver", "name phoneNumber profileImage rating")
-      .populate("car", "model brand color licensePlate")
-      .populate("passenger", "name phoneNumber profileImage");
+      .populate("driver", "name phoneNumber avatar ")
+      .populate("car")
+      .populate("passenger", "name phoneNumber avatar");
 
     if (!returnRide) {
       throw new AppError(httpStatus.NOT_FOUND, "Return ride not found");
@@ -90,8 +99,8 @@ export class ReturnService {
     await returnRide.save();
 
     const updatedReturnRide = await ReturnModel.findById(id)
-      .populate("passenger", "name phoneNumber profileImage")
-      .populate("driver", "name phoneNumber profileImage")
+      .populate("passenger", "name phoneNumber avatar")
+      .populate("driver", "name phoneNumber avatar")
       .populate("car");
 
     // Notify driver
