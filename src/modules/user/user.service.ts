@@ -5,7 +5,7 @@ import createToken from "../../utils/create_token";
 import { OTPUtils } from "../../utils/otp_utils";
 import passwordUtils from "../../utils/password_utils";
 import { EmailService } from "../email/email.service";
-import { OTP_CONFIG } from "./user.enum";
+import { OTP_CONFIG, Role } from "./user.enum";
 import { IUser } from "./user.interface";
 import UserModel from "./user.model";
 
@@ -156,6 +156,27 @@ export class UserService {
   async getUserById(id: string) {
     const user = await UserModel.findById(id);
     return user;
+  }
+
+  async createDefaultAdminUser(data: IUser) {
+    const adminUser = await UserModel.findOne({ email: data.email });
+    if (adminUser && adminUser.role !== Role.ADMIN) {
+      adminUser.role = Role.ADMIN;
+      await adminUser.save();
+    }
+    if (!adminUser) {
+      const hashedPassword = await passwordUtils.hash(data.password);
+      await UserModel.create({
+        name: data.name,
+        email: data.email,
+        password: hashedPassword,
+        role: Role.ADMIN,
+        phoneNumber: data.phoneNumber,
+        gender: data.gender,
+      });
+    }
+
+    return adminUser;
   }
 }
 

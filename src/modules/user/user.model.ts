@@ -18,7 +18,7 @@ const userSchema = new Schema<IUser>(
 
     avatar: { type: String },
     phoneNumber: { type: String, required: true },
-    gender: { type: String, enum: ["male", "female"], required: true },
+    gender: { type: String, enum: ["male", "female", "other"], required: true },
     isCarOwner: { type: Boolean, default: false },
     isVerified: { type: Boolean, default: false },
     otp: {
@@ -49,7 +49,7 @@ const userSchema = new Schema<IUser>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 const UserModel = model<IUser>("User", userSchema);

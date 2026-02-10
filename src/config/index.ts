@@ -34,6 +34,12 @@ const envSchema = z.object({
   APP_EMAIL: z.string().min(1, "APP_EMAIL is required"),
   APP_PASSWORD: z.string().min(1, "APP_PASSWORD is required"),
   CLIENT_URL: z.string().min(1, "CLIENT_URL is required").optional(),
+
+  ADMIN_NAME: z.string().min(1, "ADMIN_NAME is required"),
+  ADMIN_EMAIL: z.string().min(1, "ADMIN_EMAIL is required"),
+  ADMIN_PASSWORD: z.string().min(1, "ADMIN_PASSWORD is required"),
+  ADMIN_PHONE_NUMBER: z.string().min(1, "ADMIN_PHONE_NUMBER is required"),
+  ADMIN_GENDER: z.enum(["male", "female", "other"]).default("male"),
 });
 
 // Parse & return validated env
@@ -73,4 +79,10 @@ export default {
   APP_PASSWORD: env.APP_PASSWORD,
   BASE_URL: env.BASE_URL,
   CLIENT_URL: env.CLIENT_URL,
+
+  ADMIN_NAME: env.ADMIN_NAME,
+  ADMIN_EMAIL: env.ADMIN_EMAIL,
+  ADMIN_PASSWORD: env.ADMIN_PASSWORD,
+  ADMIN_PHONE_NUMBER: env.ADMIN_PHONE_NUMBER,
+  ADMIN_GENDER: env.ADMIN_GENDER,
 };
