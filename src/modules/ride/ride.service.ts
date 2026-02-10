@@ -75,6 +75,10 @@ export class RideService {
     }
 
     const car = await carService.getCarsByUserId(driverId);
+
+    if (!car) {
+      throw new AppError(httpStatus.UNAUTHORIZED, "Only car owners can submit");
+    }
     const carId = car?._id;
 
     // Check if driver already submitted proposal
