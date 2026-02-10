@@ -17,9 +17,9 @@ class SocketService {
         origin: isDevelopment ? "*" : process.env.CLIENT_URL?.split(",") || "*",
         credentials: true,
         methods: ["GET", "POST"],
-        pingTimeout: 60000,
-        pingInterval: 25000,
       },
+      pingTimeout: 60000,
+      pingInterval: 25000,
     });
 
     this.io.on("connection", (socket: Socket) => {
