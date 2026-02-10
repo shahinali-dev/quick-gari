@@ -154,20 +154,23 @@ router.get(
   }),
 );
 
-// -------------------------
-// UPDATE CAR
-// -------------------------
 router.patch(
   "/:id",
   isAuth,
-  upload.array("images", 5),
+  upload.fields([
+    { name: "images", maxCount: 5 },
+    { name: "taxTokenPhoto", maxCount: 1 },
+    { name: "registrationCardPhoto", maxCount: 1 },
+    { name: "drivingLicensePhoto", maxCount: 1 },
+  ]),
   catchAsync(async (req, res) => {
     const userId = req.user!._id.toString();
     const { id } = req.params;
 
     const payload = JSON.parse(req.body.data);
     carValidation.updateCarValidationSchema.parse(payload);
-    const files = req.files as Express.Multer.File[];
+
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
     const updatedCar = await carService.updateCar(id, userId, payload, files);
 
@@ -180,9 +183,6 @@ router.patch(
   }),
 );
 
-// -------------------------
-// DELETE CAR
-// -------------------------
 router.delete(
   "/:id",
   isAuth,
@@ -190,13 +190,14 @@ router.delete(
   catchAsync(async (req, res) => {
     const userId = req.user!._id.toString();
     const { id } = req.params;
-    const deletedCar = await carService.deleteCar(id, userId);
+
+    await carService.deleteCar(id, userId);
 
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.OK,
       message: "Car deleted successfully",
-      data: deletedCar,
+      data: null,
     });
   }),
 );

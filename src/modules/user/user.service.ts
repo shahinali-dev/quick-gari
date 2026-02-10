@@ -173,6 +173,7 @@ export class UserService {
         role: Role.ADMIN,
         phoneNumber: data.phoneNumber,
         gender: data.gender,
+        isVerified: true,
       });
     }
 

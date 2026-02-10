@@ -1,9 +1,13 @@
+/* eslint-disable no-undef */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-unused-vars */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import httpStatus from "http-status";
 import { AppError } from "../../errors/app_error";
-import { cleanupUploadedFiles } from "../../utils/cloudinary.utils";
+import {
+  cleanupUploadedFiles,
+  deleteMultipleFromCloudinary,
+} from "../../utils/cloudinary.utils";
 import { userService } from "../user/user.service";
 import { ICar, ICarFiles, ICreateCarPayload, IFeature } from "./car.interface";
 import CarModel from "./car.model";
@@ -79,12 +83,12 @@ export class CarService {
     return car;
   }
 
-  // ✏ UPDATE CAR
+  //  UPDATE CAR
   async updateCar(
     id: string,
     userId: string,
-    payload: Partial<ICar>,
-    files: Express.Multer.File[],
+    payload: Partial<ICreateCarPayload>,
+    files?: { [fieldname: string]: Express.Multer.File[] },
   ) {
     const car = await CarModel.findById(id);
 
@@ -92,50 +96,125 @@ export class CarService {
       throw new AppError(httpStatus.NOT_FOUND, "Car not found");
     }
 
-    const isOwner = car?.user.toString() === userId;
+    // Authorization check
     const user = await userService.getUserById(userId);
+    const isOwner = car.user.toString() === userId;
+    const isAdmin = user?.role === "admin";
 
-    if (!isOwner || user?.role !== "admin") {
-      throw new AppError(httpStatus.FORBIDDEN, "You are not allowed to update");
+    if (!isOwner || !isAdmin) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "You are not authorized to update this car",
+      );
     }
 
-    const updatedPayload: Partial<ICar> = { ...payload };
+    // Collect old images for cleanup
+    const oldImagesToDelete: string[] = [];
 
-    if (files && files.length > 0) {
-      const imageUrls = files.map((file) => file.path);
-      updatedPayload.features = {
-        ...car.features,
-        ...payload.features,
-        images: imageUrls,
-      } as IFeature;
-    } else if (payload.features) {
-      const { images, ...restFeatures } = payload.features as any;
-      updatedPayload.features = {
-        ...car.features,
-        ...restFeatures,
-      } as IFeature;
+    try {
+      const updatedPayload: Partial<ICar> = { ...payload };
+
+      // Handle feature images update
+      if (files?.images && files.images.length > 0) {
+        oldImagesToDelete.push(...car.features.images);
+
+        updatedPayload.features = {
+          ...car.features,
+          ...payload.features,
+          images: files.images.map((file) => file.path),
+        } as IFeature;
+      } else if (payload.features) {
+        updatedPayload.features = {
+          ...car.features,
+          ...payload.features,
+          images: car.features.images,
+        } as IFeature;
+      }
+
+      // Handle tax token photo update
+      if (files?.taxTokenPhoto?.[0]) {
+        oldImagesToDelete.push(car.vehicleRegistration.taxTokenPhoto);
+
+        updatedPayload.vehicleRegistration = {
+          ...car.vehicleRegistration,
+          ...payload.vehicleRegistration,
+          taxTokenPhoto: files.taxTokenPhoto[0].path,
+        };
+      } else if (payload.vehicleRegistration) {
+        updatedPayload.vehicleRegistration = {
+          ...car.vehicleRegistration,
+          ...payload.vehicleRegistration,
+        };
+      }
+
+      // Handle registration card photo update
+      if (files?.registrationCardPhoto?.[0]) {
+        oldImagesToDelete.push(car.vehicleRegistration.registrationCardPhoto);
+
+        updatedPayload.vehicleRegistration = {
+          ...updatedPayload.vehicleRegistration!,
+          registrationCardPhoto: files.registrationCardPhoto[0].path,
+        };
+      }
+
+      // Handle driving license photo update
+      if (files?.drivingLicensePhoto?.[0]) {
+        oldImagesToDelete.push(car.drivingLicensePhoto);
+        updatedPayload.drivingLicensePhoto = files.drivingLicensePhoto[0].path;
+      }
+
+      // Update in database
+      const updated = await CarModel.findByIdAndUpdate(id, updatedPayload, {
+        new: true,
+        runValidators: true,
+      });
+
+      // Clean up old images
+      if (oldImagesToDelete.length > 0) {
+        await deleteMultipleFromCloudinary(oldImagesToDelete);
+        console.log(`🗑️ Cleaned up ${oldImagesToDelete.length} old images`);
+      }
+
+      return updated;
+    } catch (error) {
+      if (files) {
+        await cleanupUploadedFiles(files);
+        console.log("🧹 Rolled back newly uploaded files");
+      }
+      throw error;
     }
-
-    const updated = await CarModel.findByIdAndUpdate(id, updatedPayload, {
-      new: true,
-      runValidators: true,
-    });
-
-    return updated;
   }
 
-  // ❌ DELETE CAR
+  // DELETE CAR
   async deleteCar(id: string, userId: string) {
     const car = await CarModel.findById(id);
 
-    const isOwner = car?.user.toString() === userId;
-    const user = await userService.getUserById(userId);
-
-    if (!isOwner || user?.role !== "admin") {
-      throw new AppError(httpStatus.FORBIDDEN, "You are not allowed to delete");
+    if (!car) {
+      throw new AppError(httpStatus.NOT_FOUND, "Car not found");
     }
 
-    const deleted = await CarModel.findByIdAndDelete(id);
+    // Already deleted check
+    if (car.isDeleted) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Car is already deleted");
+    }
+
+    // Authorization check
+    const user = await userService.getUserById(userId);
+    const isOwner = car.user.toString() === userId;
+    const isAdmin = user?.role === "admin";
+
+    if (!isOwner || !isAdmin) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "You are not authorized to delete this car",
+      );
+    }
+
+    const deleted = await CarModel.findByIdAndUpdate(
+      id,
+      { isDeleted: true },
+      { new: true },
+    );
 
     return deleted;
   }
