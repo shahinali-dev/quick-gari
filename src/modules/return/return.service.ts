@@ -2,7 +2,9 @@ import httpStatus from "http-status";
 import { AppError } from "../../errors/app_error";
 import { normalizeDate, normalizeTime } from "../../utils/normalize";
 import QueryBuilder from "../../utils/query_builder.utils";
+import { carService } from "../car/car.service";
 import { notificationService } from "../notification/notification.service";
+import { userService } from "../user/user.service";
 import { ReturnStatus } from "./return.enum";
 import ReturnModel from "./return.model";
 import { IReturnRide } from "./return.validation";
@@ -10,7 +12,7 @@ import { IReturnRide } from "./return.validation";
 export class ReturnService {
   async isExist(userId: string, date: Date) {
     const existingReturnRide = await ReturnModel.findOne({
-      user: userId,
+      driver: userId,
       status: ReturnStatus.AVAILABLE,
       date,
     });
@@ -22,6 +24,11 @@ export class ReturnService {
     const date = normalizeDate(new Date(payload.date));
     const startTime = normalizeTime(new Date(payload.startTime));
 
+    const user = await userService.getUserById(userId);
+    if (!user?.isCarOwner) {
+      throw new AppError(httpStatus.UNAUTHORIZED, "You are not a car owner");
+    }
+
     const isExistingReturnRide = await this.isExist(userId, date);
 
     if (isExistingReturnRide) {
@@ -31,11 +38,14 @@ export class ReturnService {
       );
     }
 
+    const car = await carService.getCarsByUserId(userId);
+
     const newReturnRide = await ReturnModel.create({
       ...payload,
       date,
       startTime,
       driver: userId,
+      car: car._id,
     });
 
     return newReturnRide;

@@ -4,9 +4,9 @@ import { IReturn } from "./return.interface";
 
 const returnSchema = new Schema<IReturn>(
   {
-    passenger: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    car: { type: Schema.Types.ObjectId, ref: "Car" },
-    driver: { type: Schema.Types.ObjectId, ref: "User" },
+    passenger: { type: Schema.Types.ObjectId, ref: "User" },
+    car: { type: Schema.Types.ObjectId, ref: "Car", required: true },
+    driver: { type: Schema.Types.ObjectId, ref: "User", required: true },
     startLocation: { type: String, required: true },
     endLocation: { type: String, required: true },
     distance: { type: Number },
@@ -16,7 +16,7 @@ const returnSchema = new Schema<IReturn>(
     status: {
       type: String,
       enum: Object.values(ReturnStatus),
-      default: ReturnStatus.REQUESTED,
+      default: ReturnStatus.AVAILABLE,
     },
   },
   {
