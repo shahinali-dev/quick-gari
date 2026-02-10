@@ -1,37 +1,45 @@
 import { z } from "zod";
-import { FuelType, GearType } from "./car.enum";
+import { FuelType, GearType, vehicleType } from "./car.enum";
 
-const specificationSchema = z.object({
-  maxPower: z.string().min(1, "Max power is required"),
-  fuelEconomy: z.string().min(1, "Fuel economy is required"),
-  maxSpeed: z.string().min(1, "Max speed is required"),
-  zeroToSixty: z.string().min(1, "0-60mph time is required"),
+const vehicleRegistrationSchema = z.object({
+  registrationNumber: z.string().min(1, "Registration number is required"),
+  registration: z
+    .number()
+    .min(1900, "Registration year must be at least 1900")
+    .max(new Date().getFullYear(), "Registration year cannot be in the future"),
 });
 
 const featureSchema = z.object({
+  vehicleType: z.enum(Object.values(vehicleType) as [string, ...string[]], {
+    errorMap: () => ({ message: "Invalid vehicle type" }),
+  }),
   model: z.string().min(1, "Model is required"),
-  capacity: z.string().min(1, "Capacity is required"),
-  color: z.string().min(1, "Color is required"),
-
+  brand: z.string().min(1, "Brand is required"),
   fuelType: z.enum([
     FuelType.PETROL,
     FuelType.DIESEL,
     FuelType.HYBRID,
     FuelType.ELECTRIC,
   ]),
-
   gearType: z.enum([GearType.MANUAL, GearType.AUTOMATIC]),
-
-  seat: z.number().min(1, "Seat must be at least 1"),
+  seatCapacity: z.number().min(1, "Seat capacity must be at least 1"),
+  manufactureYear: z
+    .number()
+    .min(1900, "Manufacture year must be at least 1900")
+    .max(new Date().getFullYear(), "Manufacture year cannot be in the future"),
 });
 
 const createCarValidationSchema = z.object({
-  carName: z.string().min(1, "Car name is required"),
-  specification: specificationSchema,
+  carName: z.string().min(1, "Car name is required").trim(),
   features: featureSchema,
+  vehicleRegistration: vehicleRegistrationSchema,
 });
 
-export const updateCarValidationSchema = createCarValidationSchema.partial();
+export const updateCarValidationSchema = createCarValidationSchema
+  .partial()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field must be provided for update",
+  });
 
 export const carValidation = {
   createCarValidationSchema,

@@ -1,38 +1,43 @@
 import { Types } from "mongoose";
 import { IUser } from "../user/user.interface";
-import { FuelType, GearType } from "./car.enum";
+import { FuelType, GearType, vehicleType } from "./car.enum";
 
-export interface ISpecification {
-  maxPower: string;
-  fuelEconomy: string;
-  maxSpeed: string;
-  zeroToSixty: string;
+export interface IVehicleRegistration {
+  registrationNumber: string;
+  registration: number;
+  taxTokenPhoto: string;
+  registrationCardPhoto: string;
 }
 
 export interface IFeature {
+  vehicleType: vehicleType;
   model: string;
-  capacity: string;
-  color: string;
+  brand: string;
   fuelType: FuelType;
   gearType: GearType;
   images: string[];
-  seat: number;
+  seatCapacity: number;
+  manufactureYear: number;
 }
 
 export interface ICar {
   _id?: string;
   carName: string;
-  specification: ISpecification;
   features: IFeature;
+  vehicleRegistration: IVehicleRegistration;
+  drivingLicensePhoto: string;
   user: string | Types.ObjectId | IUser;
-  createdAt?: Date;
-  updatedAt?: Date;
   isApproved?: boolean;
   isDeleted?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface ICreateCarPayload {
   carName: string;
-  specification: ISpecification;
   features: Omit<IFeature, "images">;
+  vehicleRegistration: Omit<
+    IVehicleRegistration,
+    "taxTokenPhoto" | "registrationCardPhoto"
+  >;
 }

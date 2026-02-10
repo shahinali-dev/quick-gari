@@ -1,18 +1,28 @@
 import { Schema, model } from "mongoose";
-import { FuelType, GearType } from "./car.enum";
-import { ICar, IFeature, ISpecification } from "./car.interface";
+import { FuelType, GearType, vehicleType } from "./car.enum";
+import { ICar, IFeature } from "./car.interface";
 
-const SpecificationSchema = new Schema<ISpecification>({
-  maxPower: { type: String, required: true },
-  fuelEconomy: { type: String, required: true },
-  maxSpeed: { type: String, required: true },
-  zeroToSixty: { type: String, required: true },
+const VehicleRegistrationSchema = new Schema({
+  registrationNumber: { type: String, required: true },
+  registration: {
+    type: Number,
+    required: true,
+    min: 1900,
+    max: new Date().getFullYear(),
+  },
+  taxTokenPhoto: { type: String, required: true },
+  registrationCardPhoto: { type: String, required: true },
 });
 
 const FeatureSchema = new Schema<IFeature>({
+  vehicleType: {
+    type: String,
+    enum: Object.values(vehicleType),
+    required: true,
+  },
+
   model: { type: String, required: true },
-  capacity: { type: String, required: true },
-  color: { type: String, required: true },
+  brand: { type: String, required: true },
 
   fuelType: {
     type: String,
@@ -35,10 +45,16 @@ const FeatureSchema = new Schema<IFeature>({
     },
   },
 
-  seat: {
+  seatCapacity: {
     type: Number,
     required: true,
     min: 1,
+  },
+  manufactureYear: {
+    type: Number,
+    required: true,
+    min: 1900,
+    max: new Date().getFullYear(),
   },
 });
 
@@ -46,9 +62,16 @@ const CarSchema = new Schema<ICar>(
   {
     carName: { type: String, required: true, trim: true },
 
-    specification: { type: SpecificationSchema, required: true },
-
     features: { type: FeatureSchema, required: true },
+
+    vehicleRegistration: {
+      type: VehicleRegistrationSchema,
+      required: true,
+    },
+    drivingLicensePhoto: {
+      type: String,
+      required: true,
+    },
 
     user: {
       type: Schema.Types.ObjectId,
@@ -64,7 +87,7 @@ const CarSchema = new Schema<ICar>(
       default: false,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const CarModel = model<ICar>("Car", CarSchema);
