@@ -6,8 +6,6 @@ export class EmailService {
   private static transporter: Transporter | null = null;
 
   private static getTransporter(): Transporter {
-    console.log("app_email", config.APP_EMAIL);
-    console.log("app_password", config.APP_PASSWORD);
     if (!this.transporter) {
       this.transporter = nodemailer.createTransport({
         service: "gmail",
@@ -24,7 +22,7 @@ export class EmailService {
     email: string,
     name: string,
     otp: string,
-    isResend: boolean = false
+    isResend: boolean = false,
   ): Promise<void> {
     const emailHTML = nunjucks.render("verify-otp-email.html", {
       name,

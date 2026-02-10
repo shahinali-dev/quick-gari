@@ -2,6 +2,7 @@ import { Router } from "express";
 import httpStatus from "http-status";
 import { isAdmin } from "../../middleware/is_admin";
 import { isAuth } from "../../middleware/is_auth";
+import { upload } from "../../middleware/multer.middleware";
 import { registrationLimiter } from "../../middleware/otp_limiter";
 import validateRequest from "../../middleware/validate_request.middleware";
 import catchAsync from "../../utils/catch_async.utils";
@@ -14,6 +15,7 @@ const router = Router();
 router.post(
   "/register",
   registrationLimiter,
+  upload.single("avatar"),
   validateRequest(userValidation.baseUserValidationSchema),
   catchAsync(async (req, res) => {
     const userData = req.body;
@@ -23,6 +25,11 @@ router.post(
       req.socket.remoteAddress ||
       "unknown";
     const userAgent = req.headers["user-agent"] || "unknown";
+
+    const file = req.file;
+    if (file) {
+      userData.avatar = file.path;
+    }
 
     const user = await userService.registerUser(userData, ip, userAgent);
 
@@ -43,7 +50,7 @@ router.post(
       message: "User registered successfully",
       data: user,
     });
-  })
+  }),
 );
 
 router.get(
@@ -58,7 +65,7 @@ router.get(
       message: "All users fetched successfully",
       data: users,
     });
-  })
+  }),
 );
 
 export const userRoute = router;

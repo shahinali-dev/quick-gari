@@ -19,18 +19,39 @@ const router = Router();
 router.post(
   "/",
   isAuth,
-  upload.array("images", 5),
+  upload.fields([
+    { name: "images", maxCount: 5 },
+    { name: "taxTokenPhoto", maxCount: 1 },
+    { name: "registrationCardPhoto", maxCount: 1 },
+    { name: "drivingLicensePhoto", maxCount: 1 },
+  ]),
   catchAsync(async (req, res) => {
     const carData = JSON.parse(req.body.data);
     carValidation.createCarValidationSchema.parse(carData);
 
-    const files = req.files as Express.Multer.File[];
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
     const userId = req.user!._id.toString();
 
-    if (!files || files.length === 0) {
+    // Validation
+    if (!files.images || files.images.length === 0) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "At least one image is required",
+        "At least one car image required",
+      );
+    }
+    if (!files.taxTokenPhoto?.[0]) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Tax token photo required");
+    }
+    if (!files.registrationCardPhoto?.[0]) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Registration card photo required",
+      );
+    }
+    if (!files.drivingLicensePhoto?.[0]) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Driving license photo required",
       );
     }
 
@@ -39,7 +60,7 @@ router.post(
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.CREATED,
-      message: "Car created successfully",
+      message: "Car registered successfully",
       data: car,
     });
   }),

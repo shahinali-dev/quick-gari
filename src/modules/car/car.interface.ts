@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 import { Types } from "mongoose";
 import { IUser } from "../user/user.interface";
 import { FuelType, GearType, vehicleType } from "./car.enum";
@@ -40,4 +41,11 @@ export interface ICreateCarPayload {
     IVehicleRegistration,
     "taxTokenPhoto" | "registrationCardPhoto"
   >;
+}
+
+export interface ICarFiles {
+  images: Express.Multer.File[];
+  taxTokenPhoto: Express.Multer.File[];
+  registrationCardPhoto: Express.Multer.File[];
+  drivingLicensePhoto: Express.Multer.File[];
 }

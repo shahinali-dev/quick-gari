@@ -3,39 +3,37 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import httpStatus from "http-status";
 import { AppError } from "../../errors/app_error";
+import { cleanupUploadedFiles } from "../../utils/cloudinary.utils";
 import { userService } from "../user/user.service";
-import { ICar, ICreateCarPayload, IFeature } from "./car.interface";
+import { ICar, ICarFiles, ICreateCarPayload, IFeature } from "./car.interface";
 import CarModel from "./car.model";
 
 export class CarService {
-  // 🔍 Check if car already exists (optional usage)
-  async isExist(carName: string) {
-    const existingCar = await CarModel.findOne({ carName });
-    return existingCar;
-  }
+  //  REGISTER CAR
+  async registerCar(data: ICreateCarPayload, files: ICarFiles, userId: string) {
+    try {
+      const carPayload: ICar = {
+        carName: data.carName,
+        features: {
+          ...data.features,
+          images: files.images.map((file) => file.path),
+        },
+        vehicleRegistration: {
+          ...data.vehicleRegistration,
+          taxTokenPhoto: files.taxTokenPhoto[0].path,
+          registrationCardPhoto: files.registrationCardPhoto[0].path,
+        },
+        drivingLicensePhoto: files.drivingLicensePhoto[0].path,
+        user: userId,
+      };
 
-  // ✅ CREATE CAR
-  async registerCar(
-    data: ICreateCarPayload,
-    files: Express.Multer.File[],
-    userId: string,
-  ) {
-    await userService.makeCarOwner(userId);
-
-    // Cloudinary theke image URLs extract koro
-    const imageUrls = files.map((file) => file.path);
-
-    const carPayload: ICar = {
-      ...data,
-      features: {
-        ...data.features,
-        images: imageUrls,
-      },
-      user: userId,
-    };
-
-    const newCar = await CarModel.create(carPayload);
-    return newCar;
+      const newCar = await CarModel.create(carPayload);
+      return newCar;
+    } catch (error) {
+      // Automatically cleanup all uploaded files
+      await cleanupUploadedFiles(files);
+      throw error;
+    }
   }
 
   // approve a car
@@ -46,6 +44,8 @@ export class CarService {
     }
     car.isApproved = true;
     await car.save();
+
+    await userService.makeCarOwner(car.user.toString());
     return car;
   }
 
