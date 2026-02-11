@@ -8,6 +8,7 @@ import { isAuth } from "../../middleware/is_auth";
 import { upload } from "../../middleware/multer.middleware";
 import catchAsync from "../../utils/catch_async.utils";
 import sendResponse from "../../utils/send_response.utils";
+import { ICarFiles } from "./car.interface";
 import { carService } from "./car.service";
 import { carValidation } from "./car.validation";
 
@@ -29,7 +30,7 @@ router.post(
     const carData = JSON.parse(req.body.data);
     carValidation.createCarValidationSchema.parse(carData);
 
-    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+    const files = req.files as ICarFiles;
     const userId = req.user!._id.toString();
 
     // Validation
@@ -170,7 +171,7 @@ router.patch(
     const payload = JSON.parse(req.body.data);
     carValidation.updateCarValidationSchema.parse(payload);
 
-    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+    const files = req.files as ICarFiles;
 
     const updatedCar = await carService.updateCar(id, userId, payload, files);
 

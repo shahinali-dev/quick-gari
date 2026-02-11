@@ -9,7 +9,7 @@ import {
   deleteMultipleFromCloudinary,
 } from "../../utils/cloudinary.utils";
 import { userService } from "../user/user.service";
-import { ICar, ICarFiles, ICreateCarPayload, IFeature } from "./car.interface";
+import { ICar, ICarFiles, ICreateCarPayload } from "./car.interface";
 import CarModel from "./car.model";
 
 export class CarService {
@@ -35,7 +35,7 @@ export class CarService {
       return newCar;
     } catch (error) {
       // Automatically cleanup all uploaded files
-      await cleanupUploadedFiles(files);
+      await cleanupUploadedFiles(files as any);
       throw error;
     }
   }
@@ -88,7 +88,7 @@ export class CarService {
     id: string,
     userId: string,
     payload: Partial<ICreateCarPayload>,
-    files?: { [fieldname: string]: Express.Multer.File[] },
+    files?: ICarFiles,
   ) {
     const car = await CarModel.findById(id);
 
@@ -101,7 +101,8 @@ export class CarService {
     const isOwner = car.user.toString() === userId;
     const isAdmin = user?.role === "admin";
 
-    if (!isOwner || !isAdmin) {
+    if (!isOwner && !isAdmin) {
+      // || থেকে && করুন
       throw new AppError(
         httpStatus.FORBIDDEN,
         "You are not authorized to update this car",
@@ -112,7 +113,12 @@ export class CarService {
     const oldImagesToDelete: string[] = [];
 
     try {
-      const updatedPayload: Partial<ICar> = { ...payload };
+      const updatedPayload: any = {}; // Partial<ICar> এর বদলে any ব্যবহার করুন
+
+      // Handle carName
+      if (payload.carName) {
+        updatedPayload.carName = payload.carName;
+      }
 
       // Handle feature images update
       if (files?.images && files.images.length > 0) {
@@ -122,13 +128,13 @@ export class CarService {
           ...car.features,
           ...payload.features,
           images: files.images.map((file) => file.path),
-        } as IFeature;
+        };
       } else if (payload.features) {
         updatedPayload.features = {
           ...car.features,
           ...payload.features,
           images: car.features.images,
-        } as IFeature;
+        };
       }
 
       // Handle tax token photo update
@@ -178,7 +184,7 @@ export class CarService {
       return updated;
     } catch (error) {
       if (files) {
-        await cleanupUploadedFiles(files);
+        await cleanupUploadedFiles(files as any); // Type assertion
         console.log("🧹 Rolled back newly uploaded files");
       }
       throw error;
@@ -203,7 +209,8 @@ export class CarService {
     const isOwner = car.user.toString() === userId;
     const isAdmin = user?.role === "admin";
 
-    if (!isOwner || !isAdmin) {
+    if (!isOwner && !isAdmin) {
+      // || থেকে && করুন
       throw new AppError(
         httpStatus.FORBIDDEN,
         "You are not authorized to delete this car",

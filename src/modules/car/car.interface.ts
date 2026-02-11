@@ -48,4 +48,5 @@ export interface ICarFiles {
   taxTokenPhoto: Express.Multer.File[];
   registrationCardPhoto: Express.Multer.File[];
   drivingLicensePhoto: Express.Multer.File[];
+  [key: string]: Express.Multer.File[];
 }
