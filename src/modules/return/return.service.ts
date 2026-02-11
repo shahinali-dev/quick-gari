@@ -1,4 +1,5 @@
 import httpStatus from "http-status";
+import { Types } from "mongoose";
 import { AppError } from "../../errors/app_error";
 import { normalizeDate, normalizeTime } from "../../utils/normalize";
 import QueryBuilder from "../../utils/query_builder.utils";
@@ -39,6 +40,9 @@ export class ReturnService {
     }
 
     const car = await carService.getCarsByUserId(userId);
+    if (!car) {
+      throw new AppError(httpStatus.BAD_REQUEST, "No car found for this user");
+    }
 
     const newReturnRide = await ReturnModel.create({
       ...payload,
@@ -97,6 +101,10 @@ export class ReturnService {
       );
     }
 
+    if (!returnRide.driver) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Invalid return ride driver");
+    }
+
     if (returnRide.driver.toString() === userId) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
@@ -105,7 +113,7 @@ export class ReturnService {
     }
 
     returnRide.status = ReturnStatus.BOOKED;
-    returnRide.passenger = userId;
+    returnRide.passenger = new Types.ObjectId(userId);
     await returnRide.save();
 
     const updatedReturnRide = await ReturnModel.findById(id)
@@ -115,7 +123,7 @@ export class ReturnService {
 
     // Notify driver
     await notificationService.notifyUser(
-      returnRide.driver,
+      new Types.ObjectId(returnRide.driver.toString()),
       updatedReturnRide!._id,
       "You got a booking for return trip",
       "GOT_RETURN_TRIP_BOOKING",

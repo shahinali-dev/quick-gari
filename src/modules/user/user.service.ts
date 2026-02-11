@@ -158,13 +158,17 @@ export class UserService {
     return user;
   }
 
-  async createDefaultAdminUser(data: IUser) {
+  async createDefaultAdminUser(data: Partial<IUser>) {
     const adminUser = await UserModel.findOne({ email: data.email });
     if (adminUser && adminUser.role !== Role.ADMIN) {
       adminUser.role = Role.ADMIN;
       await adminUser.save();
     }
     if (!adminUser) {
+      if (!data.password) {
+        throw new Error("Password is required to create admin user");
+      }
+
       const hashedPassword = await passwordUtils.hash(data.password);
       await UserModel.create({
         name: data.name,

@@ -2,7 +2,6 @@
 import { Types } from "mongoose";
 import { socketService } from "../../config/socket.config";
 import UserModel from "../user/user.model";
-import { INotification } from "./notification.interface";
 import { NotificationModel } from "./notification.model";
 
 class NotificationService {
@@ -53,34 +52,38 @@ class NotificationService {
 
   // Send notification to specific user
   async notifyUser(
-    userId: Types.ObjectId,
-    rideId: Types.ObjectId,
+    userId: Types.ObjectId | string,
+    rideId: Types.ObjectId | string,
     message: string,
-    type: INotification["type"],
+    type: string,
     additionalData?: any,
   ) {
     try {
+      const userObjId =
+        typeof userId === "string" ? new Types.ObjectId(userId) : userId;
+      const rideObjId =
+        typeof rideId === "string" ? new Types.ObjectId(rideId) : rideId;
       // Save to database
       const notification = await NotificationModel.create({
-        userId,
-        rideId,
+        userId: userObjId,
+        rideId: rideObjId,
         message,
         type,
         isRead: false,
       });
 
       // Send real-time notification via Socket.IO
-      socketService.sendToUser(userId.toString(), "notification:new", {
+      socketService.sendToUser(userObjId.toString(), "notification:new", {
         _id: notification._id,
         type,
         message,
-        rideId: rideId.toString(),
+        rideId: rideObjId.toString(),
         isRead: false,
         timestamp: new Date(),
         ...additionalData,
       });
 
-      console.log(`✅ Sent ${type} notification to user ${userId}`);
+      console.log(`✅ Sent ${type} notification to user ${userObjId}`);
 
       return notification;
     } catch (error) {

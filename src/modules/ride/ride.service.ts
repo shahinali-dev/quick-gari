@@ -1,4 +1,5 @@
 import httpStatus from "http-status";
+import { Types } from "mongoose";
 import { AppError } from "../../errors/app_error";
 import { normalizeDate, normalizeTime } from "../../utils/normalize";
 import { carService } from "../car/car.service";
@@ -80,6 +81,7 @@ export class RideService {
       throw new AppError(httpStatus.UNAUTHORIZED, "Only car owners can submit");
     }
     const carId = car?._id;
+    const carIdObj = car?._id ? new Types.ObjectId(car!._id as any) : undefined;
 
     // Check if driver already submitted proposal
     const existingProposal = ride.proposals.find(
@@ -95,8 +97,8 @@ export class RideService {
 
     // Add proposal
     ride.proposals.push({
-      driver: driverId,
-      car: carId,
+      driver: new Types.ObjectId(driverId),
+      car: (carIdObj as any) || carId,
       fare: fare,
       message: message,
       createdAt: new Date(),
@@ -155,8 +157,8 @@ export class RideService {
     }
 
     // Update ride with selected proposal
-    ride.driver = selectedProposal.driver;
-    ride.car = selectedProposal.car;
+    ride.driver = selectedProposal.driver as any;
+    ride.car = selectedProposal.car as any;
     ride.fare = selectedProposal.fare;
     ride.status = RideStatus.ACCEPTED;
 
@@ -168,8 +170,12 @@ export class RideService {
       .populate("car");
 
     // Notify selected driver
+    const selectedDriverId = (selectedProposal.driver as any)?._id
+      ? (selectedProposal.driver as any)._id
+      : (selectedProposal.driver as any);
+
     await notificationService.notifyUser(
-      selectedProposal.driver,
+      selectedDriverId,
       ride._id,
       "Your proposal has been accepted!",
       "PROPOSAL_ACCEPTED",
@@ -179,11 +185,11 @@ export class RideService {
     // Notify other drivers that ride is no longer available
     const rejectedDrivers = ride.proposals
       .filter((p) => p._id?.toString() !== proposalId)
-      .map((p) => p.driver);
+      .map((p) => ((p.driver as any)?._id ? (p.driver as any)._id : p.driver));
 
     for (const driverId of rejectedDrivers) {
       await notificationService.notifyUser(
-        driverId,
+        driverId as any,
         ride._id,
         "Ride has been accepted by another driver",
         "RIDE_TAKEN",

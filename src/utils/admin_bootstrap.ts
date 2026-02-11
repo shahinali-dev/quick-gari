@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-console */
 import config from "../config";
 import { userService } from "../modules/user/user.service";
@@ -28,7 +29,7 @@ export const createDefaultAdmin = async () => {
       email: ADMIN_EMAIL,
       password: ADMIN_PASSWORD,
       phoneNumber: ADMIN_PHONE_NUMBER,
-      gender: ADMIN_GENDER,
+      gender: ADMIN_GENDER as any,
     });
 
     if (admin) {

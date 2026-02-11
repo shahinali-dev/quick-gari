@@ -5,6 +5,7 @@ type TSendResponse<T> = {
   statusCode: number;
   message: string;
   data: T;
+  meta?: unknown;
 };
 
 const sendResponse = <T>(res: Response, data: TSendResponse<T>) => {
@@ -13,6 +14,7 @@ const sendResponse = <T>(res: Response, data: TSendResponse<T>) => {
     statusCode: data.statusCode,
     message: data.message,
     data: data.data,
+    ...(data.meta ? { meta: data.meta } : {}),
   });
 };
 

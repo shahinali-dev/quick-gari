@@ -34,14 +34,16 @@ router.get(
   "/",
   isAuth,
   catchAsync(async (req, res) => {
-    const returnRides = await returnService.getAllReturnRides();
+    const returnRides = await returnService.getAllReturnRides(
+      req.query as Record<string, unknown>,
+    );
 
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.OK,
       message: "Return rides fetched successfully",
-      meta: returnRides.meta,
       data: returnRides.result,
+      meta: returnRides.meta,
     });
   }),
 );

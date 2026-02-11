@@ -59,7 +59,7 @@ export const cleanupUploadedFiles = async (
 
     // Single file
     if (!Array.isArray(files) && "path" in files) {
-      urls.push(files.path);
+      urls.push((files as Express.Multer.File).path);
     }
     // Array of files
     else if (Array.isArray(files)) {
