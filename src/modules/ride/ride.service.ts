@@ -56,12 +56,7 @@ export class RideService {
     return newRide;
   }
 
-  async submitProposal(
-    rideId: string,
-    driverId: string,
-    fare: number,
-    message?: string,
-  ) {
+  async submitProposal(rideId: string, driverId: string, fare: number) {
     const ride = await RideModel.findById(rideId);
 
     if (!ride) {
@@ -100,7 +95,6 @@ export class RideService {
       driver: new Types.ObjectId(driverId),
       car: (carIdObj as any) || carId,
       fare: fare,
-      message: message,
       createdAt: new Date(),
     });
 

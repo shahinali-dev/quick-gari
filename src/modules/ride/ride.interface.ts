@@ -25,6 +25,5 @@ export interface IRideProposal {
   driver: Types.ObjectId | IUser;
   car: Types.ObjectId | ICar;
   fare: number;
-  message?: string;
   createdAt: Date;
 }

@@ -10,7 +10,6 @@ const rideValidationSchema = z.object({
 const proposalValidationSchema = z.object({
   rideId: z.string().min(1, "Ride ID is required"),
   fare: z.string().min(1, "Fare is required"),
-  message: z.string().optional(),
 });
 
 const acceptProposalValidationSchema = z.object({

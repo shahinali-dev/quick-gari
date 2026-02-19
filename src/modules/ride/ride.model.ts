@@ -6,7 +6,6 @@ const rideProposalSchema = new Schema<IRideProposal>({
   driver: { type: Schema.Types.ObjectId, ref: "User", required: true },
   car: { type: Schema.Types.ObjectId, ref: "Car", required: true },
   fare: { type: Number, required: true },
-  message: { type: String },
   createdAt: { type: Date, default: Date.now },
 });
 

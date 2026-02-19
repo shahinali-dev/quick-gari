@@ -32,15 +32,10 @@ router.post(
   isAuth,
   validateRequest(rideValidation.proposalValidationSchema),
   catchAsync(async (req, res) => {
-    const { rideId, fare, message } = req.body;
+    const { rideId, fare } = req.body;
     const driverId = req.user!._id.toString();
 
-    const ride = await rideService.submitProposal(
-      rideId,
-      driverId,
-      fare,
-      message,
-    );
+    const ride = await rideService.submitProposal(rideId, driverId, fare);
 
     sendResponse(res, {
       success: true,
