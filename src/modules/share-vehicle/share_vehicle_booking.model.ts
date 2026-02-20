@@ -73,7 +73,7 @@ const shareVehicleBookingSchema = new Schema<IShareVehicleBooking>(
   },
 );
 
-// ── Indexes ───────────────────────────────────────────────
+// ── Indexes
 shareVehicleBookingSchema.index({ shareVehicle: 1 });
 shareVehicleBookingSchema.index({ "passenger.userId": 1 });
 shareVehicleBookingSchema.index({ "passenger.userId": 1, status: 1 });
