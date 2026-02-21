@@ -17,7 +17,7 @@ async function main() {
     socketService.initialize(httpServer);
 
     httpServer.listen(config.PORT, () => {
-      console.log(`Express app is listening on port ${config.PORT}`);
+      console.log(`QuickGari app is listening on port ${config.PORT}`);
     });
   } catch (error) {
     console.log(error);
