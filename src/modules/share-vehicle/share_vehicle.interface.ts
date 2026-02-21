@@ -28,6 +28,7 @@ export interface IVehicle {
 
 export interface IShareVehicle {
   _id?: Types.ObjectId;
+  carOwner: Types.ObjectId;
   vehicle: IVehicle;
   journeyDate: Date;
   stops: IStop[];

@@ -8,3 +8,10 @@ export function normalizeTime(time: Date) {
   t.setSeconds(0, 0);
   return t;
 }
+
+export function combineDateAndTime(date: Date, timeStr: string): Date {
+  const [hours, minutes] = timeStr.split(":").map(Number);
+  const combined = new Date(date);
+  combined.setHours(hours, minutes, 0, 0);
+  return combined;
+}

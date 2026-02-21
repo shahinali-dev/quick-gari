@@ -3,6 +3,7 @@ import { IShareVehicle, ShareVehicleStatus } from "./shareVehicle.interface";
 
 const shareVehicleSchema = new Schema<IShareVehicle>(
   {
+    carOwner: { type: Schema.Types.ObjectId, ref: "User", required: true },
     vehicle: {
       carName: { type: String, required: true, trim: true },
       seatCapacity: { type: Number, required: true, min: 1 },
