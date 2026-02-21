@@ -90,8 +90,8 @@ router.patch(
 // -------------------------
 router.get(
   "/",
-  // isAuth,
-  // isAdmin,
+  isAuth,
+  isAdmin,
   catchAsync(async (req, res) => {
     const cars = await carService.getAllCars();
 
