@@ -65,14 +65,14 @@ export class ShareVehicleService {
     // ৫. car owner কিনা verify করো
     const car = await carService.getCarsByUserId(userId);
     if (!car) {
-      throw new AppError(httpStatus.FORBIDDEN, "You are not a car owner"); // UNAUTHORIZED → FORBIDDEN
+      throw new AppError(httpStatus.FORBIDDEN, "You are not a car owner");
     }
 
     const vehicleInfo = {
       carName: car.carName,
-      seatCapacity: car.seatCapacity,
-      images: car.images,
-      driverName: car.driverName,
+      seatCapacity: car.features.seatCapacity,
+      images: car.features.images,
+      driverName: car.user.name,
     };
 
     // ৬. create
@@ -132,4 +132,4 @@ export class ShareVehicleService {
   }
 }
 
-export default new ShareVehicleService();
+export const shareVehicleService = new ShareVehicleService();

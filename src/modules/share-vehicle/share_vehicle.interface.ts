@@ -17,6 +17,7 @@ export interface IStop {
   location: string;
   arrivalTime: string;
   order: number;
+  perSeatFare: number;
 }
 
 export interface IVehicle {
@@ -32,7 +33,6 @@ export interface IShareVehicle {
   vehicle: IVehicle;
   journeyDate: Date;
   stops: IStop[];
-  perSeatFare: number;
   availableSeats: number;
   status: ShareVehicleStatus;
   createdAt?: Date;

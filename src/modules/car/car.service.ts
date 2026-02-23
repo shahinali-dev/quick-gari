@@ -228,7 +228,9 @@ export class CarService {
 
   // get car by user id
   async getCarsByUserId(userId: string) {
-    const cars = await CarModel.findOne({ user: userId });
+    const cars = await CarModel.findOne({ user: userId })
+      .populate("user", "name email")
+      .select("carName features user");
     return cars;
   }
 }
