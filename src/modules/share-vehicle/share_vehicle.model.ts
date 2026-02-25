@@ -22,11 +22,6 @@ const shareVehicleSchema = new Schema<IShareVehicle>(
           location: { type: String, required: true, trim: true },
           arrivalTime: { type: String, required: true },
           order: { type: Number, required: true },
-          perSeatFare: {
-            type: Number,
-            required: true,
-            min: 0,
-          },
           _id: false,
         },
       ],
@@ -34,6 +29,12 @@ const shareVehicleSchema = new Schema<IShareVehicle>(
         validator: (stops: IShareVehicle["stops"]) => stops.length >= 2,
         message: "At least 2 stops required (origin + destination)",
       },
+    },
+
+    perSeatFare: {
+      type: Number,
+      required: true,
+      min: 0,
     },
 
     availableSeats: {
