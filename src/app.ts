@@ -1,7 +1,6 @@
 import cors from "cors";
 import express, { Application, Request, Response } from "express";
 import nunjucks from "nunjucks";
-import config from "./config";
 import globalErrorHandler from "./middleware/global_error_handler.middleware";
 import notFound from "./middleware/not_found.middleware";
 import router from "./router/router";
@@ -14,10 +13,10 @@ nunjucks.configure("views", {
   watch: true,
 });
 
-const allowedOrigins = config.CORS_ORIGIN?.split(",");
+// const allowedOrigins = config.CORS_ORIGIN?.split(",");
 const corsOptions = {
-  origin: allowedOrigins,
-  credentials: true,
+  origin: "*",
+  credentials: false,
 };
 
 app.use(express.json());
