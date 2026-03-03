@@ -38,6 +38,58 @@ export class ShareVehicleFareConfigService {
     });
   }
 
+  async getLocationsList() {
+    const result = await ShareVehicleFareConfigModel.aggregate([
+      { $match: { isActive: true } },
+      {
+        $project: {
+          locations: ["$fromLocation", "$toLocation"],
+        },
+      },
+      { $unwind: "$locations" },
+      {
+        $group: {
+          _id: "$locations",
+        },
+      },
+      {
+        $sort: { _id: 1 },
+      },
+      {
+        $project: {
+          _id: 0,
+          location: "$_id",
+        },
+      },
+    ]);
+
+    return result.map((item) => item.location);
+  }
+
+  async updateFare(
+    id: string,
+    fromLocation?: string,
+    toLocation?: string,
+    perSeatFare?: number,
+  ) {
+    const fare = await ShareVehicleFareConfigModel.findByIdAndUpdate(
+      id,
+      {
+        fromLocation: fromLocation?.toLowerCase(),
+        toLocation: toLocation?.toLowerCase(),
+        perSeatFare,
+        isActive: true,
+      },
+      { new: true },
+    );
+
+    if (!fare) {
+      throw new AppError(httpStatus.NOT_FOUND, "Fare configuration not found");
+    }
+
+    return fare;
+  }
+
   async deleteFare(id: string) {
     return ShareVehicleFareConfigModel.findByIdAndUpdate(
       id,

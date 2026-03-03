@@ -36,7 +36,7 @@ const moduleRoutes = [
     route: shareVehicleRouter,
   },
   {
-    path: "/api/v1/share-vehicle-fare-config",
+    path: "/api/v1/share-vehicle-fare",
     route: shareVehicleFareConfigController,
   },
 ];
