@@ -7,7 +7,11 @@ import ShareVehicleModel from "./share_vehicle.model";
 import { ICreateShareVehicle } from "./share_vehicle.validation";
 
 export class ShareVehicleService {
-  async isExistingShareVehicle(userId: string, incomingDate: Date) {
+  async isExistingShareVehicle(
+    userId: string,
+    incomingStart: Date,
+    incomingEnd: Date,
+  ) {
     const existingRides = await ShareVehicleModel.find({
       carOwner: userId,
       status: {
@@ -27,7 +31,9 @@ export class ShareVehicleService {
         sortedStops[sortedStops.length - 1].arrivalTime,
       );
 
-      if (incomingDate >= rideStart && incomingDate <= rideEnd) {
+      const hasOverlap = incomingStart < rideEnd && incomingEnd > rideStart;
+
+      if (hasOverlap) {
         return ride;
       }
     }
@@ -47,14 +53,23 @@ export class ShareVehicleService {
     // ২. stops order অনুযায়ী sort
     const sortedStops = [...payload.stops].sort((a, b) => a.order - b.order);
 
-    // ৩. নতুন ride এর start time বানাও (journeyDate + first stop time)
+    // ৩. নতুন ride এর start এবং end time বানাও
     const incomingStart = combineDateAndTime(
       new Date(payload.journeyDate),
       sortedStops[0].arrivalTime,
     );
 
+    const incomingEnd = combineDateAndTime(
+      new Date(payload.journeyDate),
+      sortedStops[sortedStops.length - 1].arrivalTime,
+    );
+
     // ৪. time range conflict check
-    const conflict = await this.isExistingShareVehicle(userId, incomingStart);
+    const conflict = await this.isExistingShareVehicle(
+      userId,
+      incomingStart,
+      incomingEnd,
+    );
     if (conflict) {
       throw new AppError(
         httpStatus.CONFLICT,
