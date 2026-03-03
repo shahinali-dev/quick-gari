@@ -1,6 +1,7 @@
 import { Router } from "express";
 import httpStatus from "http-status";
 import { isAuth } from "../../middleware/is_auth";
+import { isCarOwner } from "../../middleware/is_car_owner";
 import catchAsync from "../../utils/catch_async.utils";
 import sendResponse from "../../utils/send_response.utils";
 import { shareVehicleService } from "./share_vehicle.service";
@@ -10,6 +11,7 @@ const router = Router();
 router.post(
   "/",
   isAuth,
+  isCarOwner,
   catchAsync(async (req, res) => {
     const payload = req.body;
     const userId = req.user!._id.toString();
@@ -31,6 +33,7 @@ router.post(
 router.get(
   "/driver",
   isAuth,
+  isCarOwner,
   catchAsync(async (req, res) => {
     const userId = req.user!._id.toString();
     const shareVehicles =

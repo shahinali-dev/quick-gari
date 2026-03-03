@@ -149,6 +149,7 @@ export class UserService {
     if (!user) {
       throw new AppError(httpStatus.NOT_FOUND, "Car owner not found");
     }
+    user.role = Role.CAR_OWNER;
     user.isCarOwner = true;
     await user.save();
   }
