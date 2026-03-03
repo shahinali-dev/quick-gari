@@ -77,7 +77,7 @@ router.get(
 router.put(
   "/:id",
   isAuth,
-  // isAdmin,
+  isAdmin,
   catchAsync(async (req, res) => {
     const { id } = req.params;
     const { fromLocation, toLocation, perSeatFare } = req.body;

@@ -1,5 +1,8 @@
 import { model, Schema } from "mongoose";
-import { BookingStatus, IShareVehicleBooking } from "./shareVehicle.interface";
+import {
+  BookingStatus,
+  IShareVehicleBooking,
+} from "./share_vehicle_booking.interface";
 
 const shareVehicleBookingSchema = new Schema<IShareVehicleBooking>(
   {
@@ -51,7 +54,13 @@ const shareVehicleBookingSchema = new Schema<IShareVehicleBooking>(
       min: 1,
     },
 
-    totalPaid: {
+    perSeatFare: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    totalFare: {
       type: Number,
       required: true,
       min: 0,
@@ -60,7 +69,7 @@ const shareVehicleBookingSchema = new Schema<IShareVehicleBooking>(
     status: {
       type: String,
       enum: Object.values(BookingStatus),
-      default: BookingStatus.CONFIRMED,
+      default: BookingStatus.PENDING,
     },
 
     cancelledAt: {
