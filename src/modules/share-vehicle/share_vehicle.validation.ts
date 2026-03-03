@@ -1,7 +1,14 @@
 import { z } from "zod";
 
 const shareVehicleValidationSchema = z.object({
-  journeyDate: z.string().min(1, "Journey date is required"),
+  journeyDate: z
+    .string()
+    .min(1, "Journey date is required")
+    .refine((date) => {
+      const journeyDate = new Date(date);
+      const today = new Date();
+      return journeyDate >= today;
+    }, "Journey date cannot be in the past"),
   stops: z
     .array(
       z.object({

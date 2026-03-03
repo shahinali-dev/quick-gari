@@ -2,9 +2,11 @@ import { Router } from "express";
 import httpStatus from "http-status";
 import { isAuth } from "../../middleware/is_auth";
 import { isCarOwner } from "../../middleware/is_car_owner";
+import validateRequest from "../../middleware/validate_request.middleware";
 import catchAsync from "../../utils/catch_async.utils";
 import sendResponse from "../../utils/send_response.utils";
 import { shareVehicleService } from "./share_vehicle.service";
+import { shareVehicleValidation } from "./share_vehicle.validation";
 
 const router = Router();
 
@@ -12,6 +14,7 @@ router.post(
   "/",
   isAuth,
   isCarOwner,
+  validateRequest(shareVehicleValidation.shareVehicleValidationSchema),
   catchAsync(async (req, res) => {
     const payload = req.body;
     const userId = req.user!._id.toString();
