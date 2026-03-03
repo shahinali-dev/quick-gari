@@ -22,6 +22,11 @@ const shareVehicleSchema = new Schema<IShareVehicle>(
           location: { type: String, required: true, trim: true },
           arrivalTime: { type: String, required: true },
           order: { type: Number, required: true },
+          perSeatFare: {
+            type: Number,
+            required: true,
+            min: 0,
+          },
           _id: false,
         },
       ],

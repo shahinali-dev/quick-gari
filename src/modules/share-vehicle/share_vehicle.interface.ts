@@ -33,7 +33,6 @@ export interface IShareVehicle {
   vehicle: IVehicle;
   journeyDate: Date;
   stops: IStop[];
-  perSeatFare: number;
   availableSeats: number;
   status: ShareVehicleStatus;
   createdAt?: Date;
