@@ -17,7 +17,6 @@ export interface IStop {
   location: string;
   arrivalTime: string;
   order: number;
-  perSeatFare: number;
 }
 
 export interface IVehicle {
