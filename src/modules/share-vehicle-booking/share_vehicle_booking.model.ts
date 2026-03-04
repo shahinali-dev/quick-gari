@@ -1,4 +1,5 @@
 import { model, Schema } from "mongoose";
+import { PaymentStatus } from "../ride/ride.enum";
 import {
   BookingStatus,
   IShareVehicleBooking,
@@ -70,12 +71,13 @@ const shareVehicleBookingSchema = new Schema<IShareVehicleBooking>(
       type: Number,
       required: true,
       min: 0,
-    }, // Payment amount
+    },
 
     payment: {
-      type: Schema.Types.ObjectId,
-      ref: "Payment",
-    }, // ⭐ NEW - Link to Payment
+      type: String,
+      enum: Object.values(PaymentStatus),
+      default: PaymentStatus.PENDING,
+    },
 
     status: {
       type: String,

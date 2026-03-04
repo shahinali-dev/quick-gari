@@ -1,4 +1,5 @@
 import { model, Schema } from "mongoose";
+import { PaymentStatus } from "../ride/ride.enum";
 import { ReturnStatus } from "./return.enum";
 import { IReturn } from "./return.interface";
 
@@ -13,8 +14,12 @@ const returnSchema = new Schema<IReturn>(
     date: { type: Date, required: true },
     startTime: { type: Date, required: true },
     fare: { type: Number },
-    amount: { type: Number }, // Payment amount
-    payment: { type: Schema.Types.ObjectId, ref: "Payment" }, // ⭐ NEW - Link to Payment
+    amount: { type: Number },
+    payment: {
+      type: String,
+      enum: Object.values(PaymentStatus),
+      default: PaymentStatus.PENDING,
+    },
     status: {
       type: String,
       enum: Object.values(ReturnStatus),
