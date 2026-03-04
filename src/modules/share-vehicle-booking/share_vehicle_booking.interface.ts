@@ -8,6 +8,7 @@ export enum BookingStatus {
 }
 
 export interface IPassenger {
+  userId: Types.ObjectId;
   name: string;
   email: string;
   phoneNumber: string;
@@ -20,7 +21,8 @@ export interface IShareVehicleBooking {
   pickupStop: string;
   dropStop: string;
   seatsBooked: number;
-  totalPaid: number;
+  perSeatFare: number;
+  totalFare: number;
   status: BookingStatus;
   cancelledAt?: Date | null;
   createdAt?: Date;
