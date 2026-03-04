@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import httpStatus from "http-status";
 import { AppError } from "../../errors/app_error";
 import { combineDateAndTime } from "../../utils/normalize";
@@ -87,7 +88,7 @@ export class ShareVehicleService {
       carName: car.carName,
       seatCapacity: car.features.seatCapacity,
       images: car.features.images,
-      driverName: car.user.name,
+      driverName: (car.user as any).name || "Driver",
     };
 
     // ৬. create
