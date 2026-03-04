@@ -14,6 +14,8 @@ export interface IReturn {
   date: Date;
   startTime: Date;
   fare: number;
+  amount?: number; // Payment amount
+  payment?: Types.ObjectId; // Reference to Payment document
   status: ReturnStatus;
   createdAt?: Date;
   updatedAt?: Date;

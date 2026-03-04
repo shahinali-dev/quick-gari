@@ -1,7 +1,19 @@
 import { Types } from "mongoose";
 import { ICar } from "../car/car.interface";
 import { IUser } from "../user/user.interface";
-import { RideStatus } from "./ride.enum";
+import { PaymentStatus, RideStatus } from "./ride.enum";
+
+export interface IPayment {
+  _id?: Types.ObjectId;
+  transactionId: string;
+  amount: number;
+  paymentMethod: string; // bkash
+  status: PaymentStatus;
+  submittedAt?: Date;
+  approvedAt?: Date;
+  approvedBy?: Types.ObjectId;
+  rejectionReason?: string;
+}
 
 export interface IRide {
   _id?: Types.ObjectId;
@@ -15,6 +27,7 @@ export interface IRide {
   startTime: Date;
   fare: number;
   proposals: IRideProposal[];
+  payment?: IPayment;
   status: RideStatus;
   createdAt?: Date;
   updatedAt?: Date;

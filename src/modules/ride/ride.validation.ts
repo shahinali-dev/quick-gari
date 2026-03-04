@@ -17,11 +17,30 @@ const acceptProposalValidationSchema = z.object({
   proposalId: z.string().min(1, "Proposal ID is required"),
 });
 
+const submitPaymentValidationSchema = z.object({
+  rideId: z.string().min(1, "Ride ID is required"),
+  transactionId: z.string().min(1, "Transaction ID is required"),
+});
+
+const approvePaymentValidationSchema = z.object({
+  rideId: z.string().min(1, "Ride ID is required"),
+  approved: z.boolean(),
+  rejectionReason: z.string().optional(),
+});
+
 export const rideValidation = {
   rideValidationSchema,
   proposalValidationSchema,
   acceptProposalValidationSchema,
+  submitPaymentValidationSchema,
+  approvePaymentValidationSchema,
 };
 
 export type ICreateRidePayload = z.infer<typeof rideValidationSchema>;
 export type IAcceptRidePayload = z.infer<typeof proposalValidationSchema>;
+export type ISubmitPaymentPayload = z.infer<
+  typeof submitPaymentValidationSchema
+>;
+export type IApprovePaymentPayload = z.infer<
+  typeof approvePaymentValidationSchema
+>;

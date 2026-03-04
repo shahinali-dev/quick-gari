@@ -150,11 +150,20 @@ router.patch(
 
     const booking = await shareVehicleBookingService.confirmBooking(id);
 
+    // Return response with payment details for frontend
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.OK,
       message: "Booking confirmed successfully",
-      data: booking,
+      data: {
+        booking,
+        paymentRequired: true,
+        paymentDetails: {
+          amount: booking.totalPrice || booking.totalFare,
+          paymentFor: "SHARE_VEHICLE",
+          message: "Please proceed to payment to confirm your booking",
+        },
+      },
     });
   }),
 );

@@ -1,6 +1,8 @@
 import { Router } from "express";
 import httpStatus from "http-status";
+import { isAdmin } from "../../middleware/is_admin";
 import { isAuth } from "../../middleware/is_auth";
+import { isCarOwner } from "../../middleware/is_car_owner";
 import validateRequest from "../../middleware/validate_request.middleware";
 import catchAsync from "../../utils/catch_async.utils";
 import sendResponse from "../../utils/send_response.utils";
@@ -30,6 +32,7 @@ router.post(
 router.post(
   "/proposal",
   isAuth,
+  isCarOwner,
   validateRequest(rideValidation.proposalValidationSchema),
   catchAsync(async (req, res) => {
     const { rideId, fare } = req.body;
@@ -97,6 +100,72 @@ router.get(
       statusCode: httpStatus.OK,
       message: "Ride fetched successfully",
       data: ride,
+    });
+  }),
+);
+
+router.post(
+  "/payment/submit",
+  isAuth,
+  validateRequest(rideValidation.submitPaymentValidationSchema),
+  catchAsync(async (req, res) => {
+    const { rideId, transactionId } = req.body;
+    const userId = req.user!._id.toString();
+
+    const ride = await rideService.submitPayment(rideId, userId, {
+      rideId,
+      transactionId,
+    });
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Payment submitted successfully",
+      data: ride,
+    });
+  }),
+);
+
+router.post(
+  "/payment/approve/:rideId",
+  isAuth,
+  isAdmin,
+  validateRequest(rideValidation.approvePaymentValidationSchema),
+  catchAsync(async (req, res) => {
+    const { rideId } = req.params;
+    const { approved, rejectionReason } = req.body;
+    const adminId = req.user!._id.toString();
+
+    const ride = await rideService.approvePayment(
+      rideId,
+      adminId,
+      approved,
+      rejectionReason,
+    );
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: approved
+        ? "Payment approved successfully"
+        : "Payment rejected successfully",
+      data: ride,
+    });
+  }),
+);
+
+router.get(
+  "/payments/pending",
+  isAuth,
+  isAdmin,
+  catchAsync(async (req, res) => {
+    const rides = await rideService.getPendingPayments();
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Pending payments fetched successfully",
+      data: rides,
     });
   }),
 );

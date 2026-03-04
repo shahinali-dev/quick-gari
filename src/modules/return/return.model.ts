@@ -13,6 +13,8 @@ const returnSchema = new Schema<IReturn>(
     date: { type: Date, required: true },
     startTime: { type: Date, required: true },
     fare: { type: Number },
+    amount: { type: Number }, // Payment amount
+    payment: { type: Schema.Types.ObjectId, ref: "Payment" }, // ⭐ NEW - Link to Payment
     status: {
       type: String,
       enum: Object.values(ReturnStatus),

@@ -66,6 +66,17 @@ const shareVehicleBookingSchema = new Schema<IShareVehicleBooking>(
       min: 0,
     },
 
+    totalPrice: {
+      type: Number,
+      required: true,
+      min: 0,
+    }, // Payment amount
+
+    payment: {
+      type: Schema.Types.ObjectId,
+      ref: "Payment",
+    }, // ⭐ NEW - Link to Payment
+
     status: {
       type: String,
       enum: Object.values(BookingStatus),

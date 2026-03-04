@@ -23,6 +23,8 @@ export interface IShareVehicleBooking {
   seatsBooked: number;
   perSeatFare: number;
   totalFare: number;
+  totalPrice?: number; // Payment amount
+  payment?: Types.ObjectId; // Reference to Payment document
   status: BookingStatus;
   cancelledAt?: Date | null;
   createdAt?: Date;
