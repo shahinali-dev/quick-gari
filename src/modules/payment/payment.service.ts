@@ -3,6 +3,11 @@ import httpStatus from "http-status";
 import { Types } from "mongoose";
 import { AppError } from "../../errors/app_error";
 import { notificationService } from "../notification/notification.service";
+import { ReturnStatus } from "../return/return.enum";
+import ReturnModel from "../return/return.model";
+import { RideStatus } from "../ride/ride.enum";
+import RideModel from "../ride/ride.model";
+import ShareVehicleBookingModel from "../share-vehicle-booking/share_vehicle_booking.model";
 import { PaymentFor, PaymentStatus } from "./payment.enum";
 import PaymentModel from "./payment.model";
 import { ISubmitPaymentPayload } from "./payment.validation";
@@ -85,18 +90,22 @@ export class PaymentService {
 
     // Get the related service document (Ride, Return, or Share Vehicle Booking)
     if (payment.rideId) {
-      const { default: RideModel } = await import("../ride/ride.model");
       serviceModel = RideModel;
       serviceDoc = await serviceModel.findById(payment.rideId);
+      serviceDoc.payment = PaymentStatus.APPROVED;
+      serviceDoc.status = RideStatus.ACCEPTED;
+      await serviceDoc.save();
     } else if (payment.returnId) {
-      const { default: ReturnModel } = await import("../return/return.model");
       serviceModel = ReturnModel;
       serviceDoc = await serviceModel.findById(payment.returnId);
+      serviceDoc.payment = PaymentStatus.APPROVED;
+      serviceDoc.status = ReturnStatus.BOOKED;
+      await serviceDoc.save();
     } else if (payment.shareVehicleBookingId) {
-      const { default: ShareVehicleBookingModel } =
-        await import("../share-vehicle-booking/share_vehicle_booking.model");
       serviceModel = ShareVehicleBookingModel;
       serviceDoc = await serviceModel.findById(payment.shareVehicleBookingId);
+      serviceDoc.payment = PaymentStatus.APPROVED;
+      await serviceDoc.save();
     }
 
     if (!serviceDoc) {
@@ -107,10 +116,6 @@ export class PaymentService {
       payment.status = PaymentStatus.APPROVED;
       payment.approvedAt = new Date();
       payment.approvedBy = new Types.ObjectId(adminId);
-
-      // Update related service status
-      serviceDoc.status = "COMPLETED"; // or appropriate status
-      await serviceDoc.save();
 
       // Notify user about approval
       await notificationService.notifyUser(

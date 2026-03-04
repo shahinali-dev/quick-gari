@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 export enum RideStatus {
   REQUESTED = "REQUESTED",
+  PENDING = "PENDING",
   ACCEPTED = "ACCEPTED",
   REJECTED = "REJECTED",
   COMPLETED = "COMPLETED",

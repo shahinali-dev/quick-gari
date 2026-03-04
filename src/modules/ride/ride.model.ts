@@ -1,27 +1,12 @@
 import { model, Schema } from "mongoose";
 import { PaymentStatus, RideStatus } from "./ride.enum";
-import { IPayment, IRide, IRideProposal } from "./ride.interface";
+import { IRide, IRideProposal } from "./ride.interface";
 
 const rideProposalSchema = new Schema<IRideProposal>({
   driver: { type: Schema.Types.ObjectId, ref: "User", required: true },
   car: { type: Schema.Types.ObjectId, ref: "Car", required: true },
   fare: { type: Number, required: true },
   createdAt: { type: Date, default: Date.now },
-});
-
-const paymentSchema = new Schema<IPayment>({
-  transactionId: { type: String, required: true },
-  amount: { type: Number, required: true },
-  paymentMethod: { type: String, default: "bkash" },
-  status: {
-    type: String,
-    enum: Object.values(PaymentStatus),
-    default: PaymentStatus.PENDING,
-  },
-  submittedAt: { type: Date, default: Date.now },
-  approvedAt: { type: Date },
-  approvedBy: { type: Schema.Types.ObjectId, ref: "User" },
-  rejectionReason: { type: String },
 });
 
 const rideSchema = new Schema<IRide>(
@@ -36,7 +21,11 @@ const rideSchema = new Schema<IRide>(
     startTime: { type: Date, required: true },
     fare: { type: Number },
     proposals: [rideProposalSchema],
-    payment: paymentSchema,
+    payment: {
+      type: String,
+      enum: Object.values(PaymentStatus),
+      default: PaymentStatus.PENDING,
+    },
     status: {
       type: String,
       enum: Object.values(RideStatus),

@@ -6,9 +6,9 @@ import { normalizeDate, normalizeTime } from "../../utils/normalize";
 import { carService } from "../car/car.service";
 import { notificationService } from "../notification/notification.service";
 import { userService } from "../user/user.service";
-import { PaymentStatus, RideStatus } from "./ride.enum";
+import { RideStatus } from "./ride.enum";
 import RideModel from "./ride.model";
-import { ICreateRidePayload, ISubmitPaymentPayload } from "./ride.validation";
+import { ICreateRidePayload } from "./ride.validation";
 
 export class RideService {
   async isExist(userId: string, date: Date, startTime: Date) {
@@ -25,6 +25,27 @@ export class RideService {
   async requestForARide(userId: string, data: ICreateRidePayload) {
     const date = normalizeDate(new Date(data.date));
     const startTime = normalizeTime(new Date(data.startTime));
+
+    //  Past date & time validation
+    const now = new Date();
+    const normalizedNow = normalizeDate(now);
+
+    if (date < normalizedNow) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Ride date cannot be in the past",
+      );
+    }
+
+    if (date.getTime() === normalizedNow.getTime()) {
+      const currentTime = normalizeTime(now);
+      if (startTime < currentTime) {
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          "Ride start time cannot be in the past",
+        );
+      }
+    }
 
     const isExistingRide = await this.isExist(userId, date, startTime);
 
@@ -55,6 +76,14 @@ export class RideService {
     );
 
     return newRide;
+  }
+
+  async getAllRequestedRides() {
+    const rides = await RideModel.find({ status: RideStatus.REQUESTED })
+      .populate("user", "name phoneNumber")
+      .sort({ createdAt: -1 });
+
+    return rides;
   }
 
   async submitProposal(rideId: string, driverId: string, fare: number) {
@@ -109,6 +138,7 @@ export class RideService {
       })
       .populate({
         path: "proposals.car",
+        select: "carName features user",
       });
 
     // Notify user about new proposal
@@ -155,7 +185,7 @@ export class RideService {
     ride.driver = selectedProposal.driver as any;
     ride.car = selectedProposal.car as any;
     ride.fare = selectedProposal.fare;
-    ride.status = RideStatus.ACCEPTED;
+    ride.status = RideStatus.PENDING;
 
     await ride.save();
 
@@ -207,6 +237,7 @@ export class RideService {
       })
       .populate({
         path: "proposals.car",
+        select: "carName features user",
       });
 
     if (!ride) {
@@ -238,151 +269,6 @@ export class RideService {
     }
 
     return ride;
-  }
-
-  // Submit payment with transaction ID
-  async submitPayment(
-    rideId: string,
-    userId: string,
-    data: ISubmitPaymentPayload,
-  ) {
-    const ride = await RideModel.findById(rideId);
-
-    if (!ride) {
-      throw new AppError(httpStatus.NOT_FOUND, "Ride not found");
-    }
-
-    if (ride.user.toString() !== userId) {
-      throw new AppError(httpStatus.FORBIDDEN, "You are not authorized");
-    }
-
-    if (ride.status !== RideStatus.ACCEPTED) {
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        "Ride must be accepted before submitting payment",
-      );
-    }
-
-    if (ride.payment) {
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        "Payment already submitted for this ride",
-      );
-    }
-
-    // Create payment record
-    ride.payment = {
-      transactionId: data.transactionId,
-      amount: ride.fare || 0,
-      paymentMethod: "bkash",
-      status: PaymentStatus.PENDING,
-      submittedAt: new Date(),
-    };
-
-    await ride.save();
-
-    const populatedRide = await RideModel.findById(rideId)
-      .populate("driver", "name phoneNumber avatar")
-      .populate("car")
-      .populate("user", "name phoneNumber");
-
-    // Notify user about payment submission confirmation
-    await notificationService.notifyUser(
-      ride.user,
-      ride._id,
-      "Payment submitted. Admin will verify and confirm shortly.",
-      "PAYMENT_SUBMITTED",
-      {
-        transactionId: data.transactionId,
-      },
-    );
-
-    return populatedRide;
-  }
-
-  // Admin approve/reject payment
-  async approvePayment(
-    rideId: string,
-    adminId: string,
-    approved: boolean,
-    rejectionReason?: string,
-  ) {
-    const ride = await RideModel.findById(rideId);
-
-    if (!ride) {
-      throw new AppError(httpStatus.NOT_FOUND, "Ride not found");
-    }
-
-    if (!ride.payment) {
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        "No payment found for this ride",
-      );
-    }
-
-    if (approved) {
-      ride.payment.status = PaymentStatus.APPROVED;
-      ride.payment.approvedAt = new Date();
-      ride.payment.approvedBy = new Types.ObjectId(adminId);
-      ride.status = RideStatus.COMPLETED;
-
-      // Notify user about payment approval
-      await notificationService.notifyUser(
-        ride.user,
-        ride._id,
-        "Payment approved! Your ride is confirmed.",
-        "PAYMENT_APPROVED",
-        { ride },
-      );
-
-      // Notify driver about ride confirmation
-      if (ride.driver) {
-        await notificationService.notifyUser(
-          ride.driver as any,
-          ride._id,
-          "Ride payment approved! You are confirmed as driver.",
-          "RIDE_CONFIRMED",
-          { ride },
-        );
-      }
-    } else {
-      ride.payment.status = PaymentStatus.REJECTED;
-      ride.payment.rejectionReason =
-        rejectionReason || "Payment rejected by admin";
-      ride.status = RideStatus.REQUESTED; // Reset to requested so user can try again
-
-      // Notify user about payment rejection
-      await notificationService.notifyUser(
-        ride.user,
-        ride._id,
-        `Payment rejected: ${rejectionReason || "Please try again"}`,
-        "PAYMENT_REJECTED",
-        { ride },
-      );
-    }
-
-    await ride.save();
-
-    const populatedRide = await RideModel.findById(rideId)
-      .populate("driver", "name phoneNumber avatar")
-      .populate("car")
-      .populate("user", "name phoneNumber")
-      .populate("payment.approvedBy", "name email");
-
-    return populatedRide;
-  }
-
-  // Get all pending payments (for admin)
-  async getPendingPayments() {
-    const rides = await RideModel.find({
-      "payment.status": PaymentStatus.PENDING,
-    })
-      .populate("driver", "name phoneNumber avatar")
-      .populate("car")
-      .populate("user", "name phoneNumber")
-      .sort({ "payment.submittedAt": -1 });
-
-    return rides;
   }
 }
 
