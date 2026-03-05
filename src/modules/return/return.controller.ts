@@ -90,15 +90,7 @@ router.post(
       success: true,
       statusCode: httpStatus.OK,
       message: "Return ride booked successfully",
-      data: {
-        return: returnRide,
-        paymentRequired: true,
-        paymentDetails: {
-          amount: returnRide.fare,
-          paymentFor: "RETURN",
-          message: "Please proceed to payment to confirm your booking",
-        },
-      },
+      data: returnRide,
     });
   }),
 );

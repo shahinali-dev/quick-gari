@@ -20,7 +20,7 @@ router.post(
   isAuth,
   validateRequest(paymentValidation.submitPaymentValidationSchema),
   catchAsync(async (req, res) => {
-    const { rideId, returnId, shareVehicleBookingId, transactionId } = req.body;
+    const { rideId, returnId, shareVehicleBookingId } = req.body;
     const userId = req.user!._id.toString();
 
     // Determine payment type and get amount from related document
@@ -34,6 +34,7 @@ router.post(
           success: false,
           statusCode: httpStatus.NOT_FOUND,
           message: "Ride not found",
+          data: null,
         });
       }
       paymentFor = PaymentFor.RIDE;
@@ -45,6 +46,7 @@ router.post(
           success: false,
           statusCode: httpStatus.NOT_FOUND,
           message: "Return not found",
+          data: null,
         });
       }
       paymentFor = PaymentFor.RETURN;
@@ -58,6 +60,7 @@ router.post(
           success: false,
           statusCode: httpStatus.NOT_FOUND,
           message: "Booking not found",
+          data: null,
         });
       }
       paymentFor = PaymentFor.SHARE_VEHICLE;
@@ -68,6 +71,7 @@ router.post(
         statusCode: httpStatus.BAD_REQUEST,
         message:
           "One of rideId, returnId, or shareVehicleBookingId is required",
+        data: null,
       });
     }
 
@@ -85,7 +89,6 @@ router.post(
       data: {
         payment,
         paymentDetails: {
-          adminBkashNumber: paymentService.getAdminBkashNumber(),
           amount,
           paymentFor,
         },
@@ -153,6 +156,7 @@ router.get(
         success: false,
         statusCode: httpStatus.BAD_REQUEST,
         message: `Invalid payment type. Must be one of: ${Object.values(PaymentFor).join(", ")}`,
+        data: null,
       });
     }
 
