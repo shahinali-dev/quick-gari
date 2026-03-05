@@ -5,7 +5,6 @@ import { AppError } from "../../errors/app_error";
 import { normalizeDate, normalizeTime } from "../../utils/normalize";
 import { carService } from "../car/car.service";
 import { notificationService } from "../notification/notification.service";
-import { userService } from "../user/user.service";
 import { RideStatus } from "./ride.enum";
 import RideModel from "./ride.model";
 import { ICreateRidePayload } from "./ride.validation";
@@ -253,22 +252,36 @@ export class RideService {
 
   // get ride by id
   async getRideById(rideId: string, userId: string) {
-    const ride = await RideModel.findById(rideId);
+    const ride = await RideModel.findById(rideId)
+      .select("startLocation endLocation date startTime proposals user")
+      .populate({
+        path: "proposals.car",
+        select: "carName features user",
+      })
+      .populate({
+        path: "proposals.driver",
+        select: "name phoneNumber avatar",
+      });
     if (!ride) {
       throw new AppError(httpStatus.NOT_FOUND, "Ride not found");
     }
 
     const isRideUser = ride.user.toString() === userId;
+
     if (!isRideUser) {
       throw new AppError(httpStatus.FORBIDDEN, "You are not authorized");
     }
 
-    const isUserCarOwner = await userService.getUserById(userId);
-    if (!isUserCarOwner?.isCarOwner) {
-      throw new AppError(httpStatus.FORBIDDEN, "You are not authorized");
-    }
-
     return ride;
+  }
+
+  // get users rides
+  async getUserRides(userId: string) {
+    const rides = await RideModel.find({ user: userId })
+      .select("startLocation endLocation date startTime")
+      .sort({ createdAt: -1 });
+
+    return rides;
   }
 }
 

@@ -120,5 +120,22 @@ router.get(
   }),
 );
 
+router.get(
+  "/list/user",
+  isAuth,
+  catchAsync(async (req, res) => {
+    const userId = req.user!._id.toString();
+
+    const rides = await rideService.getUserRides(userId);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Rides fetched successfully",
+      data: rides,
+    });
+  }),
+);
+
 const rideRouter = router;
 export default rideRouter;
