@@ -3,6 +3,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import httpStatus from "http-status";
+import { socketService } from "../../config/socket.config";
 import { AppError } from "../../errors/app_error";
 import {
   cleanupUploadedFiles,
@@ -33,6 +34,24 @@ export class CarService {
       };
 
       const newCar = await CarModel.create(carPayload);
+
+      // Populate user info for notification
+      const populatedCar = await CarModel.findById(newCar._id).populate(
+        "user",
+        "name email",
+      );
+
+      // Send real-time notification to all admins
+      const userData = populatedCar?.user as any;
+      socketService.sendToAllAdmins("NEW_CAR_REGISTRATION", {
+        message: `New car registration request from ${userData?.name || "User"}`,
+        carRegistrationId: newCar._id,
+        carName: newCar.carName,
+        userName: userData?.name,
+        userEmail: userData?.email,
+        timestamp: new Date(),
+      });
+
       return newCar;
     } catch (error) {
       // Automatically cleanup all uploaded files

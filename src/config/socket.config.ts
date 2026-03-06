@@ -50,6 +50,17 @@ class SocketService {
     return this.io;
   }
 
+  // Send notification to all admins
+  sendToAllAdmins(event: string, data: any) {
+    if (!this.io) {
+      console.error("Socket.IO not initialized");
+      return;
+    }
+
+    this.io.emit(event, data);
+    console.log(`📢 Sent ${event} to all admins`);
+  }
+
   // Send notification to specific user
   sendToUser(userId: string, event: string, data: any) {
     if (!this.io) {
