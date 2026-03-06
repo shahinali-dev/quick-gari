@@ -1,6 +1,7 @@
 import { Router } from "express";
 import httpStatus from "http-status";
 import { isAdmin } from "../../middleware/is_admin";
+import { isAdminOrAuthUser } from "../../middleware/is_admin_or_auth_user";
 import { isAuth } from "../../middleware/is_auth";
 import { upload } from "../../middleware/multer.middleware";
 import { registrationLimiter } from "../../middleware/otp_limiter";
@@ -65,6 +66,21 @@ router.get(
       message: "All users fetched successfully",
       data,
       meta,
+    });
+  }),
+);
+
+router.get(
+  "/:id",
+  isAuth,
+  isAdminOrAuthUser,
+  catchAsync(async (req, res) => {
+    const user = await userService.getUserById(req.params.id);
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "User fetched successfully",
+      data: user,
     });
   }),
 );

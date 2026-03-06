@@ -179,7 +179,7 @@ export class UserService {
   }
 
   async getUserById(id: string) {
-    const user = await UserModel.findById(id);
+    const user = await UserModel.findById(id).select("-password");
     return user;
   }
 
