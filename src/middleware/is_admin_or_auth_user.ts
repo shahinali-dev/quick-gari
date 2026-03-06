@@ -11,7 +11,7 @@ export const isAdminOrAuthUser = (
   const user = req.user;
   const userId = req.params.id;
 
-  if (user && (user.role === Role.ADMIN || user.id === userId)) {
+  if (user && (user.role === Role.ADMIN || user._id === userId)) {
     return next();
   }
   throw new AppError(

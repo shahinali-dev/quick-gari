@@ -77,7 +77,7 @@ export class CarService {
   }
 
   //get all car registration requests (admin)
-  async getAllCarRegistrationRequests(query) {
+  async getAllCarRegistrationRequests(query: Record<string, unknown>) {
     const searchableFields = ["carName"];
 
     const queryBuilder = new QueryBuilder(
