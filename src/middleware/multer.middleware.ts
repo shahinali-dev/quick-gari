@@ -14,6 +14,7 @@ const storage = new CloudinaryStorage({
   } as any,
 });
 
+// eslint-disable-next-line no-undef
 const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
   const allowedMimes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
