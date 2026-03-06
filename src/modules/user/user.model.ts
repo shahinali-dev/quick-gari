@@ -16,7 +16,7 @@ const userSchema = new Schema<IUser>(
       required: true,
     },
 
-    avatar: { type: String },
+    avatar: { type: String, default: null },
     phoneNumber: { type: String, required: true },
     gender: { type: String, enum: ["male", "female", "other"], required: true },
     isCarOwner: { type: Boolean, default: false },

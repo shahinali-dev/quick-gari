@@ -155,6 +155,24 @@ router.get(
   }),
 );
 
+// get all car regstration requests (admin)
+router.get(
+  "/admin/registration/requests",
+  isAuth,
+  isAdmin,
+  catchAsync(async (req, res) => {
+    const result = await carService.getAllCarRegistrationRequests();
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Car registration requests fetched successfully",
+      data: result.data,
+      meta: result.meta,
+    });
+  }),
+);
+
 router.patch(
   "/:id",
   isAuth,

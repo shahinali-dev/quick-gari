@@ -8,6 +8,7 @@ import {
   cleanupUploadedFiles,
   deleteMultipleFromCloudinary,
 } from "../../utils/cloudinary.utils";
+import QueryBuilder from "../../utils/query_builder.utils";
 import { userService } from "../user/user.service";
 import { ICar, ICarFiles, ICreateCarPayload } from "./car.interface";
 import CarModel from "./car.model";
@@ -57,6 +58,27 @@ export class CarService {
   async getAllCars() {
     const cars = await CarModel.find();
     return cars;
+  }
+
+  //get all car registration requests (admin)
+  async getAllCarRegistrationRequests() {
+    const searchableFields = ["carName"];
+
+    const queryBuilder = new QueryBuilder(
+      CarModel.find({ isApproved: false, isDeleted: false }).populate(
+        "user",
+        "name email avatar",
+      ),
+      {},
+    ).search(searchableFields);
+
+    const result = await queryBuilder.modelQuery;
+    const meta = await queryBuilder.countTotal();
+
+    return {
+      data: result,
+      meta,
+    };
   }
 
   // Get approved cars
