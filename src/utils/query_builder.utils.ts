@@ -29,7 +29,9 @@ class QueryBuilder<T> {
 
   // Search functionality
   search(searchableFields: string[]) {
-    const searchTerm = this.query?.searchTerm;
+    const searchTerm =
+      (this.query?.search as string) || (this.query?.searchTerm as string);
+
     if (searchTerm) {
       this.modelQuery = this.modelQuery.find({
         $or: searchableFields.map(
@@ -40,6 +42,7 @@ class QueryBuilder<T> {
         ),
       });
     }
+
     return this;
   }
 
@@ -47,8 +50,8 @@ class QueryBuilder<T> {
   filter() {
     const queryObj = { ...this.query };
 
-    // Exclude fields that are not for filtering
     const excludeFields = [
+      "search",
       "searchTerm",
       "sortBy",
       "sortOrder",
@@ -56,6 +59,7 @@ class QueryBuilder<T> {
       "limit",
       "fields",
     ];
+
     excludeFields.forEach((el) => delete queryObj[el]);
 
     this.modelQuery = this.modelQuery.find(queryObj as FilterQuery<T>);
@@ -98,10 +102,12 @@ class QueryBuilder<T> {
 
     const page = Number(this.query?.page) || 1;
     const limit = Number(this.query?.limit) || 10;
+
     const totalPages = Math.ceil(total / limit);
 
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
+
     const nextPage = hasNextPage ? page + 1 : null;
     const prevPage = hasPrevPage ? page - 1 : null;
 

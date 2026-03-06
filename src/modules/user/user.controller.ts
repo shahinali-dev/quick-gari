@@ -58,12 +58,13 @@ router.get(
   isAuth,
   isAdmin,
   catchAsync(async (req, res) => {
-    const users = await userService.getAllUsers();
+    const { data, meta } = await userService.getAllUsers(req.query);
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.OK,
       message: "All users fetched successfully",
-      data: users,
+      data,
+      meta,
     });
   }),
 );

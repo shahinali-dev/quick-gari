@@ -30,7 +30,7 @@ router.post(
         refreshToken: user.refreshToken,
       },
     });
-  })
+  }),
 );
 
 router.get(
@@ -45,7 +45,7 @@ router.get(
       message: "User info fetched successfully",
       data: user,
     });
-  })
+  }),
 );
 
 router.post(
@@ -70,7 +70,7 @@ router.post(
     if (!/^\d{6}$/.test(otp)) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "Invalid OTP format. Must be 6 digits"
+        "Invalid OTP format. Must be 6 digits",
       );
     }
 
@@ -79,7 +79,7 @@ router.post(
       email,
       otp,
       ip,
-      userAgent
+      userAgent,
     );
 
     return sendResponse(res, {
@@ -88,7 +88,7 @@ router.post(
       message: result.message,
       data: result.data,
     });
-  })
+  }),
 );
 
 router.post(
@@ -111,7 +111,27 @@ router.post(
       message: result.message,
       data: result.data,
     });
-  })
+  }),
+);
+
+router.post(
+  "/refresh",
+  catchAsync(async (req, res) => {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Refresh token is required");
+    }
+
+    const result = await authService.refreshAccessToken(refreshToken);
+
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Access token refreshed successfully",
+      data: result,
+    });
+  }),
 );
 
 export const authRoute = router;

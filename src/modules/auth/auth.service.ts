@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import httpStatus from "http-status";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import { Types } from "mongoose";
 import config from "../../config";
 import { AppError } from "../../errors/app_error";
@@ -22,7 +23,7 @@ export class AuthService {
 
     const isMatch = await passwordUtils.compare(
       payload.password as string,
-      existingUser.password as string
+      existingUser.password as string,
     );
 
     if (!isMatch) {
@@ -40,13 +41,13 @@ export class AuthService {
     const accessToken = createToken(
       jwtPayload,
       config.JWT_ACCESS_SECRET as string,
-      config.JWT_ACCESS_EXPIRE_IN as string
+      config.JWT_ACCESS_EXPIRE_IN as string,
     );
 
     const refreshToken = createToken(
       jwtPayload,
       config.JWT_REFRESH_SECRET as string,
-      config.JWT_REFRESH_EXPIRE_IN as string
+      config.JWT_REFRESH_EXPIRE_IN as string,
     );
 
     return { user: rest, accessToken, refreshToken };
@@ -62,14 +63,14 @@ export class AuthService {
     email: string,
     inputOtp: string,
     ip: string,
-    userAgent: string
+    userAgent: string,
   ) {
     const user = await userService.getUserForOtpVerification(userId);
 
     if (!user) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "Invalid verification request"
+        "Invalid verification request",
       );
     }
 
@@ -77,7 +78,7 @@ export class AuthService {
     if (user.email !== email) {
       throw new AppError(
         httpStatus.UNAUTHORIZED,
-        "Invalid verification request"
+        "Invalid verification request",
       );
     }
 
@@ -97,11 +98,11 @@ export class AuthService {
     if (OTPUtils.isUserBlocked(user.otpBlockedUntil)) {
       const blockedUntil = user.otpBlockedUntil!;
       const remainingTime = Math.ceil(
-        (blockedUntil.getTime() - Date.now()) / 60000
+        (blockedUntil.getTime() - Date.now()) / 60000,
       );
       throw new AppError(
         httpStatus.FORBIDDEN,
-        `Too many failed attempts. Try again after ${remainingTime} minutes`
+        `Too many failed attempts. Try again after ${remainingTime} minutes`,
       );
     }
 
@@ -109,7 +110,7 @@ export class AuthService {
     if (!user.otp) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "No OTP found. Please request a new one"
+        "No OTP found. Please request a new one",
       );
     }
 
@@ -117,7 +118,7 @@ export class AuthService {
     if (OTPUtils.isOTPExpired(user.otpExpiry)) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "OTP has expired. Please request a new one"
+        "OTP has expired. Please request a new one",
       );
     }
 
@@ -126,7 +127,7 @@ export class AuthService {
       const isValidDevice = OTPUtils.verifyDeviceFingerprint(
         user.otpDeviceFingerprint,
         ip,
-        userAgent
+        userAgent,
       );
 
       if (!isValidDevice) {
@@ -135,7 +136,7 @@ export class AuthService {
 
         if ((user.otpAttempts || 0) >= OTP_CONFIG.MAX_ATTEMPTS) {
           user.otpBlockedUntil = new Date(
-            Date.now() + OTP_CONFIG.BLOCK_DURATION
+            Date.now() + OTP_CONFIG.BLOCK_DURATION,
           );
           user.otp = undefined;
           user.otpExpiry = undefined;
@@ -144,14 +145,14 @@ export class AuthService {
 
           throw new AppError(
             httpStatus.FORBIDDEN,
-            "Security violation detected. Account blocked for 30 minutes"
+            "Security violation detected. Account blocked for 30 minutes",
           );
         }
 
         await user.save();
         throw new AppError(
           httpStatus.UNAUTHORIZED,
-          "OTP must be verified from the same device"
+          "OTP must be verified from the same device",
         );
       }
     }
@@ -172,20 +173,20 @@ export class AuthService {
 
         throw new AppError(
           httpStatus.FORBIDDEN,
-          "Too many failed attempts. Account blocked for 30 minutes"
+          "Too many failed attempts. Account blocked for 30 minutes",
         );
       }
 
       await user.save();
 
       const remainingAttempts = OTPUtils.getRemainingAttempts(
-        user.otpAttempts || 0
+        user.otpAttempts || 0,
       );
       throw new AppError(
         httpStatus.BAD_REQUEST,
         `Invalid OTP. ${remainingAttempts} attempt${
           remainingAttempts !== 1 ? "s" : ""
-        } remaining`
+        } remaining`,
       );
     }
 
@@ -211,7 +212,7 @@ export class AuthService {
     userId: string,
     email: string,
     ip: string,
-    userAgent: string
+    userAgent: string,
   ) {
     const user = await userService.getUserForOtpVerification(userId);
 
@@ -236,11 +237,11 @@ export class AuthService {
     if (OTPUtils.isUserBlocked(user.otpBlockedUntil)) {
       const blockedUntil = user.otpBlockedUntil!;
       const remainingTime = Math.ceil(
-        (blockedUntil.getTime() - Date.now()) / 60000
+        (blockedUntil.getTime() - Date.now()) / 60000,
       );
       throw new AppError(
         httpStatus.FORBIDDEN,
-        `Account temporarily blocked. Try again after ${remainingTime} minutes`
+        `Account temporarily blocked. Try again after ${remainingTime} minutes`,
       );
     }
 
@@ -249,7 +250,7 @@ export class AuthService {
     if (!canResend) {
       throw new AppError(
         httpStatus.TOO_MANY_REQUESTS,
-        `Please wait ${waitTime} seconds before requesting another OTP`
+        `Please wait ${waitTime} seconds before requesting another OTP`,
       );
     }
 
@@ -273,6 +274,65 @@ export class AuthService {
       message: "OTP sent successfully",
       data: { email: user.email },
     };
+  }
+
+  async refreshAccessToken(refreshToken: string) {
+    try {
+      // Verify the refresh token
+      const decoded = jwt.verify(
+        refreshToken,
+        config.JWT_REFRESH_SECRET as string,
+      ) as JwtPayload & { _id: string; email: string; role: string };
+
+      // Get user from database to verify they still exist
+      const user = await UserModel.findById(decoded._id).select("-password");
+
+      if (!user) {
+        throw new AppError(
+          httpStatus.UNAUTHORIZED,
+          "User not found. Please login again",
+        );
+      }
+
+      // Create new tokens
+      const jwtPayload = {
+        _id: user._id,
+        email: user.email,
+        role: user.role,
+      };
+
+      const newAccessToken = createToken(
+        jwtPayload,
+        config.JWT_ACCESS_SECRET as string,
+        config.JWT_ACCESS_EXPIRE_IN as string,
+      );
+
+      const newRefreshToken = createToken(
+        jwtPayload,
+        config.JWT_REFRESH_SECRET as string,
+        config.JWT_REFRESH_EXPIRE_IN as string,
+      );
+
+      return {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+      };
+    } catch (error) {
+      const err = error as Error & { name: string };
+      if (err.name === "TokenExpiredError") {
+        throw new AppError(
+          httpStatus.UNAUTHORIZED,
+          "Refresh token has expired. Please login again",
+        );
+      }
+      if (err.name === "JsonWebTokenError") {
+        throw new AppError(
+          httpStatus.UNAUTHORIZED,
+          "Invalid refresh token. Please login again",
+        );
+      }
+      throw error;
+    }
   }
 }
 

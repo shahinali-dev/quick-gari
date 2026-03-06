@@ -4,6 +4,7 @@ import { AppError } from "../../errors/app_error";
 import createToken from "../../utils/create_token";
 import { OTPUtils } from "../../utils/otp_utils";
 import passwordUtils from "../../utils/password_utils";
+import QueryBuilder from "../../utils/query_builder.utils";
 import { EmailService } from "../email/email.service";
 import { OTP_CONFIG, Role } from "./user.enum";
 import { IUser } from "./user.interface";
@@ -133,9 +134,32 @@ export class UserService {
     };
   }
 
-  async getAllUsers() {
-    const users = await UserModel.find().select("-password");
-    return users;
+  async getAllUsers(query: Record<string, unknown>) {
+    const searchableFields = ["name", "email"];
+
+    const queryBuilder = new QueryBuilder(
+      UserModel.find().select("-password"),
+      query,
+    )
+      .search(searchableFields)
+      .filter()
+      .sort()
+      .paginate();
+
+    const result = await queryBuilder.modelQuery;
+    const meta = await queryBuilder.countTotal();
+
+    return {
+      data: result,
+      meta: {
+        page: meta.page,
+        limit: meta.limit,
+        total: meta.total,
+        pages: meta.totalPages,
+        hasNextPage: meta.hasNextPage,
+        hasPrevPage: meta.hasPrevPage,
+      },
+    };
   }
 
   async getUserForOtpVerification(id: string) {
