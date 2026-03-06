@@ -55,13 +55,29 @@ export class CarService {
   }
 
   // 📌 GET ALL CARS
-  async getAllCars() {
-    const cars = await CarModel.find();
-    return cars;
+  async getAllCars(query: Record<string, unknown>) {
+    const searchableFields = ["carName"];
+
+    const queryBuilder = new QueryBuilder(
+      CarModel.find().populate("user", "name email avatar"),
+      query,
+    )
+      .search(searchableFields)
+      .filter()
+      .sort()
+      .paginate();
+
+    const result = await queryBuilder.modelQuery;
+    const meta = await queryBuilder.countTotal();
+
+    return {
+      data: result,
+      meta,
+    };
   }
 
   //get all car registration requests (admin)
-  async getAllCarRegistrationRequests() {
+  async getAllCarRegistrationRequests(query) {
     const searchableFields = ["carName"];
 
     const queryBuilder = new QueryBuilder(
@@ -69,8 +85,12 @@ export class CarService {
         "user",
         "name email avatar",
       ),
-      {},
-    ).search(searchableFields);
+      query,
+    )
+      .search(searchableFields)
+      .filter()
+      .sort()
+      .paginate();
 
     const result = await queryBuilder.modelQuery;
     const meta = await queryBuilder.countTotal();

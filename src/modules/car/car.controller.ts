@@ -93,13 +93,14 @@ router.get(
   isAuth,
   isAdmin,
   catchAsync(async (req, res) => {
-    const cars = await carService.getAllCars();
+    const cars = await carService.getAllCars(req.query);
 
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.OK,
       message: "All cars fetched successfully",
-      data: cars,
+      data: cars.data,
+      meta: cars.meta,
     });
   }),
 );
@@ -124,6 +125,7 @@ router.get(
 // -------------------------
 router.get(
   "/:id",
+  isAuth,
   catchAsync(async (req, res) => {
     const { id } = req.params;
     const car = await carService.getCarById(id);
@@ -161,7 +163,7 @@ router.get(
   isAuth,
   isAdmin,
   catchAsync(async (req, res) => {
-    const result = await carService.getAllCarRegistrationRequests();
+    const result = await carService.getAllCarRegistrationRequests(req.query);
 
     sendResponse(res, {
       success: true,
