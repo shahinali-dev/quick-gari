@@ -13,40 +13,40 @@ const router = Router();
 
 const moduleRoutes = [
   {
-    path: "/api/v1/auth",
+    path: "/v1/auth",
     route: authRoute,
   },
 
   {
-    path: "/api/v1/user",
+    path: "/v1/user",
     route: userRoute,
   },
   {
-    path: "/api/v1/car",
+    path: "/v1/car",
     route: carRoute,
   },
   {
-    path: "/api/v1/ride",
+    path: "/v1/ride",
     route: rideRouter,
   },
   {
-    path: "/api/v1/return-trip",
+    path: "/v1/return-trip",
     route: returnRouter,
   },
   {
-    path: "/api/v1/share-vehicle",
+    path: "/v1/share-vehicle",
     route: shareVehicleRouter,
   },
   {
-    path: "/api/v1/share-vehicle-fare",
+    path: "/v1/share-vehicle-fare",
     route: shareVehicleFareConfigController,
   },
   {
-    path: "/api/v1/share-vehicle-booking",
+    path: "/v1/share-vehicle-booking",
     route: shareVehicleBookingRouter,
   },
   {
-    path: "/api/v1/payment",
+    path: "/v1/payment",
     route: paymentRouter,
   },
 ];
