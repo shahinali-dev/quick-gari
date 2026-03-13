@@ -25,18 +25,24 @@ class SocketService {
     this.io.on("connection", (socket: Socket) => {
       console.log(`⚡ New client connected: ${socket.id}`);
 
-      // User connects with their userId
-      socket.on("user:connect", (userId: string) => {
-        this.connectedUsers.set(userId, socket.id);
-        console.log(`✅ User ${userId} connected with socket ${socket.id}`);
+      socket.on("user:connect", (data: { userId: string; role: string }) => {
+        const { userId, role } = data;
 
-        // Join user to their personal room
+        this.connectedUsers.set(userId, socket.id);
         socket.join(`user:${userId}`);
+
+        // Admin হলে admin room এ join করাও
+        if (role === "admin") {
+          socket.join("room:admin");
+          console.log(`🛡️ Admin ${userId} joined room:admin`);
+        }
+
+        console.log(
+          `✅ User ${userId} (${role}) connected with socket ${socket.id}`,
+        );
       });
 
-      // User disconnects
       socket.on("disconnect", () => {
-        // Remove user from connected users
         for (const [userId, socketId] of this.connectedUsers.entries()) {
           if (socketId === socket.id) {
             this.connectedUsers.delete(userId);
@@ -46,19 +52,17 @@ class SocketService {
         }
       });
     });
-
-    return this.io;
   }
 
   // Send notification to all admins
+
   sendToAllAdmins(event: string, data: any) {
     if (!this.io) {
       console.error("Socket.IO not initialized");
       return;
     }
-
-    this.io.emit(event, data);
-    console.log(`📢 Sent ${event} to all admins`);
+    this.io.to("room:admin").emit(event, data);
+    console.log(`📢 Sent ${event} to all admins in room:admin`);
   }
 
   // Send notification to specific user

@@ -60,13 +60,12 @@ export class PaymentService {
       "name phoneNumber",
     );
 
-    // Notify user
-    await notificationService.notifyUser(
-      userId as any,
-      rideId || returnId || shareVehicleBookingId || "",
-      "Payment submitted. Admin will verify and confirm shortly.",
+    const userData = populatedPayment?.userId as any;
+    await notificationService.notifyAdmins(
+      `Payment submitted by ${userData?.name || "User"} — ${paymentFor}`,
       "PAYMENT_SUBMITTED",
-      { transactionId, paymentFor },
+      { paymentId: payment._id.toString() },
+      { transactionId, amount, paymentFor, userName: userData?.name },
     );
 
     return populatedPayment;

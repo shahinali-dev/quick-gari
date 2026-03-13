@@ -69,7 +69,7 @@ export class RideService {
     );
 
     // Send real-time notification to all car owners
-    await notificationService.sendToCarOwners(
+    await notificationService.sendRideNotificationToAllCarOwners(
       newRide._id,
       populatedRide?.toObject(),
     );

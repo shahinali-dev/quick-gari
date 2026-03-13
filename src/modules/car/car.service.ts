@@ -3,7 +3,6 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import httpStatus from "http-status";
-import { socketService } from "../../config/socket.config";
 import { AppError } from "../../errors/app_error";
 import {
   cleanupUploadedFiles,
@@ -43,14 +42,16 @@ export class CarService {
 
       // Send real-time notification to all admins
       const userData = populatedCar?.user as any;
-      socketService.sendToAllAdmins("NEW_CAR_REGISTRATION", {
-        message: `New car registration request from ${userData?.name || "User"}`,
-        carRegistrationId: newCar._id,
-        carName: newCar.carName,
-        userName: userData?.name,
-        userEmail: userData?.email,
-        timestamp: new Date(),
-      });
+      await notificationService.notifyAdmins(
+        `New car registration request from ${userData?.name || "User"}`,
+        "CAR_REGISTRATION",
+        { carId: newCar._id.toString() },
+        {
+          carName: newCar.carName,
+          userName: userData?.name,
+          userEmail: userData?.email,
+        },
+      );
 
       return newCar;
     } catch (error) {
