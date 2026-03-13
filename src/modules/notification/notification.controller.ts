@@ -68,3 +68,5 @@ router.patch(
     });
   }),
 );
+
+export const notificationRouter = router;

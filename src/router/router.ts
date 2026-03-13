@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authRoute } from "../modules/auth/auth.controller";
 import { carRoute } from "../modules/car/car.controller";
+import { notificationRouter } from "../modules/notification/notification.controller";
 import paymentRouter from "../modules/payment/payment.controller";
 import returnRouter from "../modules/return/return.controller";
 import rideRouter from "../modules/ride/ride.controller";
@@ -48,6 +49,10 @@ const moduleRoutes = [
   {
     path: "/v1/payment",
     route: paymentRouter,
+  },
+  {
+    path: "/v1/notifications",
+    route: notificationRouter,
   },
 ];
 

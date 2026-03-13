@@ -315,7 +315,6 @@ export class AuthService {
 
       return {
         accessToken: newAccessToken,
-        refreshToken: newRefreshToken,
       };
     } catch (error) {
       const err = error as Error & { name: string };
