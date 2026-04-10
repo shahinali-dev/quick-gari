@@ -143,14 +143,10 @@ export class RideService {
     // Notify user about new proposal
     await notificationService.notifyUser(
       ride.user,
-      ride._id,
+      ride._id.toString(),
       "New proposal received for your ride!",
+      { rideId: ride._id.toString() },
       "NEW_PROPOSAL",
-      {
-        driverName:
-          updatedRide?.proposals[updatedRide.proposals.length - 1].driver,
-        fare: fare,
-      },
     );
 
     return updatedRide;
@@ -203,10 +199,10 @@ export class RideService {
 
     await notificationService.notifyUser(
       selectedDriverId,
-      ride._id,
+      ride._id.toString(),
       "Your proposal has been accepted!",
+      { rideId: ride._id.toString() },
       "PROPOSAL_ACCEPTED",
-      { ride: populatedRide },
     );
 
     // Notify other drivers that ride is no longer available
@@ -217,10 +213,10 @@ export class RideService {
     for (const driverId of rejectedDrivers) {
       await notificationService.notifyUser(
         driverId as any,
-        ride._id,
+        ride._id.toString(),
         "Ride has been accepted by another driver",
+        { rideId: ride._id.toString() },
         "RIDE_TAKEN",
-        {},
       );
     }
 

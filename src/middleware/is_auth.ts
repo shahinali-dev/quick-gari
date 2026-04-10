@@ -9,9 +9,10 @@ import { IJWTPayload } from "../modules/auth/auth.interface";
 export const isAuth = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   let accessToken = req.cookies?.accessToken;
+  console.log("Access Token from cookies:", accessToken);
 
   if (!accessToken && req.headers.authorization) {
     const authHeader = req.headers.authorization;
@@ -20,9 +21,11 @@ export const isAuth = async (
     }
   }
 
+  console.log("Access Token after checking headers:", accessToken);
+
   if (!accessToken) {
     return next(
-      new AppError(httpStatus.UNAUTHORIZED, "Authentication token is missing")
+      new AppError(httpStatus.UNAUTHORIZED, "Authentication token is missing"),
     );
   }
 
@@ -32,7 +35,7 @@ export const isAuth = async (
     if (!secret) {
       throw new AppError(
         httpStatus.INTERNAL_SERVER_ERROR,
-        "JWT secret is not configured"
+        "JWT secret is not configured",
       );
     }
 
@@ -49,7 +52,7 @@ export const isAuth = async (
     next();
   } catch (err) {
     return next(
-      new AppError(httpStatus.UNAUTHORIZED, "Invalid or expired token")
+      new AppError(httpStatus.UNAUTHORIZED, "Invalid or expired token"),
     );
   }
 };

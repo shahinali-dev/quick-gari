@@ -7,6 +7,7 @@ const baseUserValidationSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
   gender: z.enum(["male", "female", "other"]),
   phoneNumber: z.string().optional(),
+  avatar: z.string().optional(),
 });
 
 export const userValidation = {

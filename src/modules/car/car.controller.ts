@@ -85,29 +85,10 @@ router.patch(
   }),
 );
 
-// -------------------------
-// GET ALL CARS
-// -------------------------
-router.get(
-  "/",
-  isAuth,
-  isAdmin,
-  catchAsync(async (req, res) => {
-    const cars = await carService.getAllCars(req.query);
-
-    sendResponse(res, {
-      success: true,
-      statusCode: httpStatus.OK,
-      message: "All cars fetched successfully",
-      data: cars.data,
-      meta: cars.meta,
-    });
-  }),
-);
-
 //Get approved cars
 router.get(
   "/approved",
+  isAuth,
   catchAsync(async (req, res) => {
     const cars = await carService.getApprovedCars();
 
@@ -135,6 +116,26 @@ router.get(
       statusCode: httpStatus.OK,
       message: "Car fetched successfully",
       data: car,
+    });
+  }),
+);
+
+// -------------------------
+// GET ALL CARS
+// -------------------------
+router.get(
+  "/",
+  isAuth,
+  isAdmin,
+  catchAsync(async (req, res) => {
+    const cars = await carService.getAllCars(req.query);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "All cars fetched successfully",
+      data: cars.data,
+      meta: cars.meta,
     });
   }),
 );

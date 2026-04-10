@@ -118,14 +118,14 @@ export class PaymentService {
 
       // Notify user about approval
       await notificationService.notifyUser(
-        payment.userId,
-        payment.rideId ||
+        (
+          payment.rideId ||
           payment.returnId ||
-          payment.shareVehicleBookingId ||
-          "",
+          payment.shareVehicleBookingId
+        )?.toString() ?? "",
         `Payment approved! Your ${payment.paymentFor.toLowerCase()} is confirmed.`,
         "PAYMENT_APPROVED",
-        { paymentFor: payment.paymentFor },
+        { paymentId: payment._id.toString() },
       );
     } else {
       payment.status = PaymentStatus.REJECTED;
@@ -137,14 +137,14 @@ export class PaymentService {
 
       // Notify user about rejection
       await notificationService.notifyUser(
-        payment.userId,
-        payment.rideId ||
+        (
+          payment.rideId ||
           payment.returnId ||
-          payment.shareVehicleBookingId ||
-          "",
+          payment.shareVehicleBookingId
+        )?.toString() ?? "",
         `Payment rejected: ${rejectionReason || "Please try again"}`,
         "PAYMENT_REJECTED",
-        { paymentFor: payment.paymentFor },
+        { paymentId: payment._id.toString() },
       );
     }
 

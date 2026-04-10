@@ -9,6 +9,7 @@ import {
   deleteMultipleFromCloudinary,
 } from "../../utils/cloudinary.utils";
 import QueryBuilder from "../../utils/query_builder.utils";
+import { notificationService } from "../notification/notification.service";
 import { userService } from "../user/user.service";
 import { ICar, ICarFiles, ICreateCarPayload } from "./car.interface";
 import CarModel from "./car.model";
