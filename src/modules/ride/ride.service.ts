@@ -274,7 +274,7 @@ export class RideService {
   // get users rides
   async getUserRides(userId: string) {
     const rides = await RideModel.find({ user: userId })
-      .select("startLocation endLocation date startTime")
+      .select("startLocation endLocation date startTime status fare driver car")
       .sort({ createdAt: -1 });
 
     return rides;
