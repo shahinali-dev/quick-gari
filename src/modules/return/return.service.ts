@@ -132,6 +132,79 @@ export class ReturnService {
 
     return updatedReturnRide;
   }
+
+  // return.service.ts — ReturnService class e add koro
+  async verifyReturnOtp(returnId: string, driverId: string, inputOtp: string) {
+    const returnDoc = await ReturnModel.findById(returnId).select(
+      "+returnOtp +returnOtpExpiry +returnOtpVerified",
+    );
+
+    if (!returnDoc) {
+      throw new AppError(httpStatus.NOT_FOUND, "Return booking not found");
+    }
+
+    // Return model e driver field directly ache
+    if (returnDoc.driver?.toString() !== driverId.toString()) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "You are not the assigned driver for this return",
+      );
+    }
+
+    if (returnDoc.status !== ReturnStatus.BOOKED) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Return booking is not in a verifiable state",
+      );
+    }
+
+    if (returnDoc.returnOtpVerified) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "OTP has already been verified for this booking",
+      );
+    }
+
+    if (!returnDoc.returnOtp) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "No OTP found for this booking. Please contact support",
+      );
+    }
+
+    if (!returnDoc.returnOtpExpiry || new Date() > returnDoc.returnOtpExpiry) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "OTP has expired. Please contact support to resend",
+      );
+    }
+
+    const isValid = OTPUtils.verifyOTPSafely(returnDoc.returnOtp, inputOtp);
+
+    if (!isValid) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Invalid OTP");
+    }
+
+    // Clear OTP, mark ongoing
+    returnDoc.returnOtpVerified = true;
+    returnDoc.returnOtp = undefined as any;
+    returnDoc.returnOtpExpiry = undefined as any;
+    await returnDoc.save();
+
+    // passenger field e user id ache return model e
+    await notificationService.notifyUser(
+      returnDoc.passenger as any,
+      returnDoc._id.toString(),
+      "Your return journey has started!",
+      { returnId: returnDoc._id.toString() },
+      "RETURN_STARTED",
+    );
+
+    return {
+      message: "OTP verified. Return journey has started!",
+      returnId: returnDoc._id,
+    };
+  }
 }
 
 export const returnService = new ReturnService();

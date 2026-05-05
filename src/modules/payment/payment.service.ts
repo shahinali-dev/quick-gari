@@ -2,6 +2,8 @@
 import httpStatus from "http-status";
 import { Types } from "mongoose";
 import { AppError } from "../../errors/app_error";
+import { OTPUtils } from "../../utils/otp_utils";
+import { EmailService } from "../email/email.service";
 import { notificationService } from "../notification/notification.service";
 import { ReturnStatus } from "../return/return.enum";
 import ReturnModel from "../return/return.model";
@@ -84,74 +86,196 @@ export class PaymentService {
       throw new AppError(httpStatus.NOT_FOUND, "Payment not found");
     }
 
-    let serviceModel: any;
+    if (payment.status !== PaymentStatus.PENDING) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Payment has already been processed",
+      );
+    }
+
     let serviceDoc: any;
 
-    // Get the related service document (Ride, Return, or Share Vehicle Booking)
+    // ─── Fetch related service doc ────────────────────────────────────────────
     if (payment.rideId) {
-      serviceModel = RideModel;
-      serviceDoc = await serviceModel.findById(payment.rideId);
-      serviceDoc.payment = PaymentStatus.APPROVED;
-      serviceDoc.status = RideStatus.ACCEPTED;
-      await serviceDoc.save();
+      serviceDoc = await RideModel.findById(payment.rideId)
+        .select("+rideOtp +rideOtpExpiry +rideOtpVerified")
+        .populate("user", "name email");
     } else if (payment.returnId) {
-      serviceModel = ReturnModel;
-      serviceDoc = await serviceModel.findById(payment.returnId);
-      serviceDoc.payment = PaymentStatus.APPROVED;
-      serviceDoc.status = ReturnStatus.BOOKED;
-      await serviceDoc.save();
+      serviceDoc = await ReturnModel.findById(payment.returnId)
+        .select("+returnOtp +returnOtpExpiry +returnOtpVerified")
+        .populate("passenger", "name email"); // Return model e "passenger" ref
     } else if (payment.shareVehicleBookingId) {
-      serviceModel = ShareVehicleBookingModel;
-      serviceDoc = await serviceModel.findById(payment.shareVehicleBookingId);
-      serviceDoc.payment = PaymentStatus.APPROVED;
-      await serviceDoc.save();
+      // ShareVehicleBooking e passenger embedded — populate lagbe na
+      serviceDoc = await ShareVehicleBookingModel.findById(
+        payment.shareVehicleBookingId,
+      ).select("+bookingOtp +bookingOtpExpiry +bookingOtpVerified");
     }
 
     if (!serviceDoc) {
       throw new AppError(httpStatus.NOT_FOUND, "Related booking not found");
     }
 
+    // ─── User info extract (model structure different tai alag kore newa) ─────
+    // Ride     → serviceDoc.user       (populated)
+    // Return   → serviceDoc.passenger  (populated)
+    // SVB      → serviceDoc.passenger  (embedded object, already has email)
+    const getUserInfo = (): { name: string; email: string } => {
+      if (payment.rideId) {
+        return serviceDoc.user as { name: string; email: string };
+      } else if (payment.returnId) {
+        return serviceDoc.passenger as { name: string; email: string };
+      } else {
+        // ShareVehicleBooking — embedded passenger
+        return {
+          name: serviceDoc.passenger.name,
+          email: serviceDoc.passenger.email,
+        };
+      }
+    };
+
+    // ─── Helper: OTP generate + save + email ─────────────────────────────────
+    const generateAndSendOtp = async (config: {
+      otpField: string;
+      otpExpiryField: string;
+      otpVerifiedField: string;
+      expiryMinutes: number;
+      emailSubject: string;
+      emailHeading: string;
+      emailBodyText: string;
+    }) => {
+      const user = getUserInfo();
+      const otp = OTPUtils.generateSecureOTP();
+      const hashedOtp = OTPUtils.hashOTP(otp);
+
+      serviceDoc[config.otpField] = hashedOtp;
+      serviceDoc[config.otpExpiryField] = new Date(
+        Date.now() + config.expiryMinutes * 60 * 1000,
+      );
+      serviceDoc[config.otpVerifiedField] = false;
+
+      await EmailService.sendOTPEmailGeneric({
+        email: user.email,
+        name: user.name,
+        otp,
+        expiryMinutes: config.expiryMinutes,
+        subject: config.emailSubject,
+        heading: config.emailHeading,
+        icon: "🚗",
+        otpLabel: "Share with your driver",
+        bodyText: config.emailBodyText,
+        infoTitle: "🔒 Important",
+        infoBody:
+          "• Only share this OTP with your assigned driver<br />" +
+          "• Quick Gari support will never ask for your OTP<br />" +
+          "• OTP is valid for one-time use only",
+      });
+    };
+
+    // ─── APPROVED ─────────────────────────────────────────────────────────────
     if (approved) {
       payment.status = PaymentStatus.APPROVED;
       payment.approvedAt = new Date();
       payment.approvedBy = new Types.ObjectId(adminId);
 
-      // Notify user about approval
-      await notificationService.notifyUser(
-        (
-          payment.rideId ||
-          payment.returnId ||
-          payment.shareVehicleBookingId
-        )?.toString() ?? "",
-        `Payment approved! Your ${payment.paymentFor.toLowerCase()} is confirmed.`,
-        "PAYMENT_APPROVED",
-        { paymentId: payment._id.toString() },
-      );
+      if (payment.rideId) {
+        serviceDoc.serviceCharge =
+          Math.round((serviceDoc.fare ?? 0) * 0.1 * 100) / 100;
+        serviceDoc.payment = PaymentStatus.APPROVED;
+        serviceDoc.status = RideStatus.ACCEPTED;
+
+        await generateAndSendOtp({
+          otpField: "rideOtp",
+          otpExpiryField: "rideOtpExpiry",
+          otpVerifiedField: "rideOtpVerified",
+          expiryMinutes: 30,
+          emailSubject: "Your Ride OTP - Quick Gari",
+          emailHeading: "Your Ride Is Confirmed!",
+          emailBodyText:
+            "Your payment has been approved! Share this OTP with your driver when you board the vehicle. The driver will enter this code to start your ride.",
+        });
+      } else if (payment.returnId) {
+        serviceDoc.serviceCharge =
+          Math.round((serviceDoc.fare ?? 0) * 0.1 * 100) / 100;
+        serviceDoc.payment = PaymentStatus.APPROVED;
+        serviceDoc.status = ReturnStatus.BOOKED;
+
+        // OTP ready — return service e driver verify korbe, same pattern
+        await generateAndSendOtp({
+          otpField: "returnOtp",
+          otpExpiryField: "returnOtpExpiry",
+          otpVerifiedField: "returnOtpVerified",
+          expiryMinutes: 30,
+          emailSubject: "Your Return Booking OTP - Quick Gari",
+          emailHeading: "Return Booking Confirmed!",
+          emailBodyText:
+            "Your payment has been approved! Share this OTP with your driver when you board the vehicle.",
+        });
+      } else if (payment.shareVehicleBookingId) {
+        serviceDoc.serviceCharge =
+          Math.round((serviceDoc.totalFare ?? 0) * 0.1 * 100) / 100;
+        serviceDoc.payment = PaymentStatus.APPROVED;
+        serviceDoc.status = BookingStatus.CONFIRMED; // adjust if enum differs
+
+        await generateAndSendOtpU({
+          otpField: "bookingOtp",
+          otpExpiryField: "bookingOtpExpiry",
+          otpVerifiedField: "bookingOtpVerified",
+          expiryMinutes: 30,
+          emailSubject: "Your Booking OTP - Quick Gari",
+          emailHeading: "Booking Confirmed!",
+          emailBodyText:
+            "Your payment has been approved! Share this OTP with your driver at the pickup point.",
+        });
+      }
+
+      await serviceDoc.save();
+
+      // ─── REJECTED ─────────────────────────────────────────────────────────────
     } else {
       payment.status = PaymentStatus.REJECTED;
       payment.rejectionReason = rejectionReason || "Payment rejected by admin";
 
-      // Revert service status to allow retry
-      serviceDoc.status = "PENDING"; // or appropriate status
+      // Status revert
+      if (payment.rideId) {
+        serviceDoc.status = RideStatus.PENDING;
+        serviceDoc.payment = PaymentStatus.PENDING;
+      } else if (payment.returnId) {
+        serviceDoc.status = ReturnStatus.AVAILABLE; // return model er default
+        serviceDoc.payment = PaymentStatus.PENDING;
+      } else if (payment.shareVehicleBookingId) {
+        serviceDoc.status = BookingStatus.PENDING;
+        serviceDoc.payment = PaymentStatus.PENDING;
+      }
+
       await serviceDoc.save();
 
-      // Notify user about rejection
-      await notificationService.notifyUser(
-        (
-          payment.rideId ||
-          payment.returnId ||
-          payment.shareVehicleBookingId
-        )?.toString() ?? "",
-        `Payment rejected: ${rejectionReason || "Please try again"}`,
-        "PAYMENT_REJECTED",
-        { paymentId: payment._id.toString() },
-      );
+      // Rejection mail — user k janano
+      const user = getUserInfo();
+      await EmailService.sendOTPEmailGeneric({
+        email: user.email,
+        name: user.name,
+        otp: "—", // OTP nai, placeholder
+        expiryMinutes: 0,
+        subject: "Payment Rejected - Quick Gari",
+        heading: "Payment Could Not Be Processed",
+        icon: "❌",
+        otpLabel: "Reference ID",
+        bodyText: `Unfortunately, your payment could not be approved. Reason: ${
+          rejectionReason || "Payment rejected by admin"
+        }. Please resubmit your payment with a valid transaction ID.`,
+        infoTitle: "📞 Need Help?",
+        infoBody:
+          "• Double-check your bKash transaction ID before resubmitting<br />" +
+          "• Contact our support team if you believe this is an error<br />" +
+          "• Your booking has been kept — just resubmit the payment",
+      });
     }
 
     await payment.save();
 
+    // ─── Return populated payment ─────────────────────────────────────────────
     const populatedPayment = await PaymentModel.findById(paymentId)
-      .populate("userId", "name phoneNumber")
+      .populate("userId", "name phoneNumber email")
       .populate("rideId")
       .populate("returnId")
       .populate("shareVehicleBookingId")

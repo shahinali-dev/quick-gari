@@ -143,4 +143,35 @@ export class EmailService {
     const transporter = this.getTransporter();
     await transporter.sendMail(mailOptions);
   }
+
+  // email.service.ts — single generic OTP sender
+  static async sendOTPEmailGeneric(data: {
+    email: string;
+    name: string;
+    otp: string;
+    expiryMinutes?: number;
+    // Page-specific customization
+    subject: string;
+    heading: string;
+    icon: string; // emoji — "🚗" | "💳" | "📦" etc.
+    otpLabel: string;
+    bodyText: string;
+    infoTitle: string;
+    infoBody: string; // HTML string, nunjucks | safe filter handle korbe
+  }): Promise<void> {
+    const emailHTML = nunjucks.render("generic-otp-email.html", {
+      ...data,
+      expiryMinutes: data.expiryMinutes ?? 30,
+      year: new Date().getFullYear(),
+    });
+
+    const mailOptions = {
+      from: `"Quick Gari" <${config.APP_EMAIL}>`,
+      to: data.email,
+      subject: data.subject,
+      html: emailHTML,
+    };
+
+    await this.getTransporter().sendMail(mailOptions);
+  }
 }

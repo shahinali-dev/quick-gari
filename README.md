@@ -1,6 +1,6 @@
 # Quick-Gari API Reference
 
-Base URL: https://quick-gari.vercel.app/
+Base URL: http://52.184.83.249/
 
 **Overview**
 

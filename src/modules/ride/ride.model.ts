@@ -31,6 +31,10 @@ const rideSchema = new Schema<IRide>(
       enum: Object.values(RideStatus),
       default: RideStatus.REQUESTED,
     },
+    rideOtp: { type: String, select: false },
+    rideOtpExpiry: { type: Date, select: false },
+    rideOtpVerified: { type: Boolean, default: false },
+    serviceCharge: { type: Number },
   },
   {
     timestamps: true,

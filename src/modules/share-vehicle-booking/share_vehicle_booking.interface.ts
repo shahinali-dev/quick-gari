@@ -26,6 +26,10 @@ export interface IShareVehicleBooking {
   totalPrice?: number; // Payment amount
   payment?: Types.ObjectId; // Reference to Payment document
   status: BookingStatus;
+  bookingOtp?: string;
+  bookingOtpExpiry?: Date;
+  bookingOtpVerified?: boolean;
+  serviceCharge?: number;
   cancelledAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;

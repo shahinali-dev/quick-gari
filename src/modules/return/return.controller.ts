@@ -95,5 +95,29 @@ router.post(
   }),
 );
 
+// verify-otp
+router.post(
+  "/:returnId/verify-otp",
+  isAuth,
+  catchAsync(async (req, res) => {
+    const { returnId } = req.params;
+    const { otp } = req.body;
+    const userId = req.user!._id.toString();
+
+    const returnRide = await returnService.verifyReturnOtp(
+      returnId,
+      userId,
+      otp,
+    );
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "OTP verified successfully",
+      data: returnRide,
+    });
+  }),
+);
+
 const returnRouter = router;
 export default returnRouter;

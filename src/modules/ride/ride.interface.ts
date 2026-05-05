@@ -29,6 +29,10 @@ export interface IRide {
   proposals: IRideProposal[];
   payment?: IPayment;
   status: RideStatus;
+  rideOtp?: string;
+  rideOtpExpiry?: Date;
+  rideOtpVerified?: boolean;
+  serviceCharge?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }

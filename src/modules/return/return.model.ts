@@ -25,6 +25,10 @@ const returnSchema = new Schema<IReturn>(
       enum: Object.values(ReturnStatus),
       default: ReturnStatus.AVAILABLE,
     },
+    returnOtp: { type: String, select: false },
+    returnOtpExpiry: { type: Date, select: false },
+    returnOtpVerified: { type: Boolean, default: false },
+    serviceCharge: { type: Number },
   },
   {
     timestamps: true,

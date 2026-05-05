@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>{{ subject }} - Quick Gari</title>
+    <!--[if mso]>
+      <style type="text/css">
+        body,
+        table,
+        td {
+          font-family: Arial, Helvetica, sans-serif !important;
+        }
+      </style>
+    <![endif]-->
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background-color: #e5e7eb;
+      font-family:
+        -apple-system, BlinkMacSystemFont, &quot;Segoe UI&quot;, Roboto,
+        &quot;Helvetica Neue&quot;, Arial, sans-serif;
+    "
+  >
+    <table
+      role="presentation"
+      cellspacing="0"
+      cellpadding="0"
+      border="0"
+      width="100%"
+      style="background-color: #e5e7eb; padding: 40px 0"
+    >
+      <tr>
+        <td align="center">
+          <!-- Main Container -->
+          <table
+            role="presentation"
+            cellspacing="0"
+            cellpadding="0"
+            border="0"
+            width="600"
+            style="
+              max-width: 600px;
+              background-color: #ffffff;
+              border-radius: 8px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            "
+          >
+            <!-- Header -->
+            <tr>
+              <td
+                style="
+                  padding: 40px 40px 30px;
+                  text-align: center;
+                  background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+                  border-radius: 8px 8px 0 0;
+                "
+              >
+                <div
+                  style="
+                    width: 64px;
+                    height: 64px;
+                    background-color: #ffffff;
+                    border-radius: 50%;
+                    display: inline-block;
+                    line-height: 64px;
+                    text-align: center;
+                    margin-bottom: 20px;
+                    font-size: 30px;
+                  "
+                >
+                  {{ icon }}
+                </div>
+                <h1
+                  style="
+                    margin: 0;
+                    color: #ffffff;
+                    font-size: 26px;
+                    font-weight: 600;
+                  "
+                >
+                  {{ heading }}
+                </h1>
+              </td>
+            </tr>
+
+            <!-- Greeting + Body Text -->
+            <tr>
+              <td style="padding: 40px 40px 24px">
+                <h2
+                  style="
+                    margin: 0 0 16px;
+                    color: #111827;
+                    font-size: 20px;
+                    font-weight: 600;
+                  "
+                >
+                  Hello, {{ name }} 👋
+                </h2>
+                <p
+                  style="
+                    margin: 0;
+                    color: #4b5563;
+                    font-size: 16px;
+                    line-height: 1.6;
+                  "
+                >
+                  {{ bodyText }}
+                </p>
+              </td>
+            </tr>
+
+            <!-- OTP Box (conditional) -->
+            <tr>
+              <td style="padding: 0 40px 30px">
+                {% if otp !== "—" %}
+                <div
+                  style="
+                    background: linear-gradient(
+                      135deg,
+                      #f8fafc 0%,
+                      #e0f2fe 100%
+                    );
+                    border: 2px dashed #0ea5e9;
+                    border-radius: 12px;
+                    padding: 32px;
+                    text-align: center;
+                  "
+                >
+                  <p
+                    style="
+                      margin: 0 0 12px;
+                      color: #475569;
+                      font-size: 13px;
+                      font-weight: 600;
+                      letter-spacing: 1px;
+                      text-transform: uppercase;
+                    "
+                  >
+                    {{ otpLabel }}
+                  </p>
+
+                  <div
+                    style="
+                      font-family: &quot;Courier New&quot;, monospace;
+                      font-size: 42px;
+                      font-weight: 700;
+                      color: #2563eb;
+                      letter-spacing: 14px;
+                      background: #ffffff;
+                      display: inline-block;
+                      padding: 12px 20px;
+                      border-radius: 8px;
+                      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    "
+                  >
+                    {{ otp }}
+                  </div>
+
+                  <p style="margin: 16px 0 0; color: #64748b; font-size: 13px">
+                    This code will expire in {{ expiryMinutes }} minutes
+                  </p>
+                </div>
+                {% else %}
+                <!-- Rejection: no OTP, show red alert strip -->
+                <div
+                  style="
+                    background: #fef2f2;
+                    border: 2px solid #fca5a5;
+                    border-radius: 12px;
+                    padding: 28px 32px;
+                    text-align: center;
+                  "
+                >
+                  <p
+                    style="
+                      margin: 0 0 8px;
+                      color: #dc2626;
+                      font-size: 18px;
+                      font-weight: 700;
+                    "
+                  >
+                    ❌ Payment Not Approved
+                  </p>
+                  <p
+                    style="
+                      margin: 0;
+                      color: #b91c1c;
+                      font-size: 14px;
+                      line-height: 1.6;
+                    "
+                  >
+                    Please resubmit your payment to proceed with your booking.
+                  </p>
+                </div>
+                {% endif %}
+              </td>
+            </tr>
+
+            <!-- Info Box -->
+            <tr>
+              <td style="padding: 0 40px 40px">
+                <div
+                  style="
+                    background: #eff6ff;
+                    border-left: 4px solid #2563eb;
+                    border-radius: 8px;
+                    padding: 24px;
+                  "
+                >
+                  <h3
+                    style="
+                      margin: 0 0 12px;
+                      color: #2563eb;
+                      font-size: 16px;
+                      font-weight: 600;
+                    "
+                  >
+                    {{ infoTitle }}
+                  </h3>
+                  <p
+                    style="
+                      margin: 0;
+                      color: #475569;
+                      font-size: 14px;
+                      line-height: 1.8;
+                    "
+                  >
+                    {{ infoBody | safe }}
+                  </p>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td
+                style="
+                  padding: 30px 40px;
+                  background: #f8fafc;
+                  border-radius: 0 0 8px 8px;
+                  border-top: 1px solid #e5e7eb;
+                  text-align: center;
+                "
+              >
+                <p style="margin: 0 0 12px; color: #64748b; font-size: 13px">
+                  Need help? Reach out to our support team anytime.
+                </p>
+                <p
+                  style="
+                    margin: 0;
+                    color: #2563eb;
+                    font-size: 14px;
+                    font-weight: 600;
+                  "
+                >
+                  © {{ year }} Quick Gari. All rights reserved.
+                </p>
+                <p style="margin: 8px 0 0; color: #cbd5e1; font-size: 11px">
+                  Quick Gari Ltd. • Smart Car Rental Platform
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

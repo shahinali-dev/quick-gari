@@ -17,6 +17,10 @@ export interface IReturn {
   amount?: number; // Payment amount
   payment?: Types.ObjectId; // Reference to Payment document
   status: ReturnStatus;
+  returnOtp?: string;
+  returnOtpExpiry?: Date;
+  returnOtpVerified?: boolean;
+  serviceCharge?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }

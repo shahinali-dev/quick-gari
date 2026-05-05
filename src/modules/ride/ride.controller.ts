@@ -137,5 +137,23 @@ router.get(
   }),
 );
 
+router.post(
+  "/:rideId/verify-otp",
+  isAuth,
+  catchAsync(async (req, res) => {
+    const { rideId } = req.params;
+    const { otp } = req.body;
+    const userId = req.user!._id.toString();
+
+    const ride = await rideService.verifyRideOtp(rideId, userId, otp);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "OTP verified successfully",
+      data: ride,
+    });
+  }),
+);
 const rideRouter = router;
 export default rideRouter;

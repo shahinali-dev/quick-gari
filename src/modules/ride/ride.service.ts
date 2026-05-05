@@ -3,6 +3,7 @@ import httpStatus from "http-status";
 import { Types } from "mongoose";
 import { AppError } from "../../errors/app_error";
 import { normalizeDate, normalizeTime } from "../../utils/normalize";
+import { OTPUtils } from "../../utils/otp_utils";
 import { carService } from "../car/car.service";
 import { notificationService } from "../notification/notification.service";
 import { RideStatus } from "./ride.enum";
@@ -249,7 +250,9 @@ export class RideService {
   // get ride by id
   async getRideById(rideId: string, userId: string) {
     const ride = await RideModel.findById(rideId)
-      .select("startLocation endLocation date startTime proposals user")
+      .select(
+        "startLocation endLocation date startTime proposals user payment status rideOtpVerified",
+      )
       .populate({
         path: "proposals.car",
         select: "carName features user",
@@ -278,6 +281,78 @@ export class RideService {
       .sort({ createdAt: -1 });
 
     return rides;
+  }
+
+  async verifyRideOtp(rideId: string, driverId: string, inputOtp: string) {
+    const ride = await RideModel.findById(rideId).select(
+      "+rideOtp +rideOtpExpiry +rideOtpVerified",
+    );
+
+    if (!ride) {
+      throw new AppError(httpStatus.NOT_FOUND, "Ride not found");
+    }
+
+    // Only assigned driver can verify
+    if (ride.driver?.toString() !== driverId.toString()) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "You are not the assigned driver for this ride",
+      );
+    }
+
+    if (ride.status !== RideStatus.ACCEPTED) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Ride is not in a verifiable state",
+      );
+    }
+
+    if (ride.rideOtpVerified) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "OTP has already been verified for this ride",
+      );
+    }
+
+    if (!ride.rideOtp) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "No OTP found for this ride. Please contact support",
+      );
+    }
+
+    if (!ride.rideOtpExpiry || new Date() > ride.rideOtpExpiry) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "OTP has expired. Please contact support to resend",
+      );
+    }
+
+    // Timing-safe hash compare — same as registration
+    const isValid = OTPUtils.verifyOTPSafely(ride.rideOtp, inputOtp);
+
+    if (!isValid) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Invalid OTP");
+    }
+
+    // Clear OTP fields, start ride
+    ride.rideOtpVerified = true;
+    ride.rideOtp = undefined as any;
+    ride.rideOtpExpiry = undefined as any;
+    await ride.save();
+
+    await notificationService.notifyUser(
+      ride.user,
+      ride._id.toString(),
+      "Your ride has started!",
+      { rideId: ride._id.toString() },
+      "RIDE_STARTED",
+    );
+
+    return {
+      message: "OTP verified. Ride has started!",
+      rideId: ride._id,
+    };
   }
 }
 
