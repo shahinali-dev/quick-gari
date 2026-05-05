@@ -80,7 +80,7 @@ export class EmailService {
     });
 
     const mailOptions = {
-      from: `"LearniX" <${config.APP_EMAIL}>`,
+      from: `"Quick Gari" <${config.APP_EMAIL}>`,
       to: data.email,
       subject: "Payment Successful - Subscription Activated",
       html: emailHTML,
@@ -109,7 +109,7 @@ export class EmailService {
     });
 
     const mailOptions = {
-      from: `"LearniX" <${config.APP_EMAIL}>`,
+      from: `"Quick Gari" <${config.APP_EMAIL}>`,
       to: data.email,
       subject: "Payment Failed - Please Try Again",
       html: emailHTML,
@@ -134,7 +134,7 @@ export class EmailService {
     });
 
     const mailOptions = {
-      from: `"LearniX" <${config.APP_EMAIL}>`,
+      from: `"Quick Gari" <${config.APP_EMAIL}>`,
       to: data.email,
       subject: "Payment Session Expired",
       html: emailHTML,
