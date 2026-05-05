@@ -72,7 +72,7 @@ export class RideService {
     // Send real-time notification to all car owners
     await notificationService.sendRideNotificationToAllCarOwners(
       newRide._id,
-      populatedRide?.toObject(),
+      populatedRide?.toObject() as Record<string, unknown>,
     );
 
     return newRide;
@@ -105,8 +105,8 @@ export class RideService {
     if (!car) {
       throw new AppError(httpStatus.UNAUTHORIZED, "Only car owners can submit");
     }
-    const carId = car?._id;
-    const carIdObj = car?._id ? new Types.ObjectId(car!._id as any) : undefined;
+
+    const carIdObj = car?._id ? new Types.ObjectId(car._id as any) : undefined;
 
     // Check if driver already submitted proposal
     const existingProposal = ride.proposals.find(
@@ -123,7 +123,7 @@ export class RideService {
     // Add proposal
     ride.proposals.push({
       driver: new Types.ObjectId(driverId),
-      car: (carIdObj as any) || carId,
+      car: (carIdObj as any) || car._id,
       fare: fare,
       createdAt: new Date(),
     });
@@ -142,12 +142,12 @@ export class RideService {
       });
 
     // Notify user about new proposal
+    // signature: notifyUser(userId, message, type, refs?, metadata?)
     await notificationService.notifyUser(
       ride.user,
-      ride._id.toString(),
       "New proposal received for your ride!",
-      { rideId: ride._id.toString() },
       "NEW_PROPOSAL",
+      { rideId: ride._id.toString() },
     );
 
     return updatedRide;
@@ -168,7 +168,7 @@ export class RideService {
       throw new AppError(httpStatus.BAD_REQUEST, "Ride is not open");
     }
 
-    // Find proposal by _id instead of index
+    // Find proposal by _id
     const selectedProposal = ride.proposals.find(
       (p) => p._id?.toString() === proposalId,
     );
@@ -190,7 +190,6 @@ export class RideService {
       .populate("driver", "name phoneNumber avatar")
       .populate("car", "carName features user");
 
-    // Prepare response with payment details
     const rideResponse = populatedRide?.toObject() as any;
 
     // Notify selected driver
@@ -198,15 +197,15 @@ export class RideService {
       ? (selectedProposal.driver as any)._id
       : (selectedProposal.driver as any);
 
+    // signature: notifyUser(userId, message, type, refs?, metadata?)
     await notificationService.notifyUser(
       selectedDriverId,
-      ride._id.toString(),
       "Your proposal has been accepted!",
-      { rideId: ride._id.toString() },
       "PROPOSAL_ACCEPTED",
+      { rideId: ride._id.toString() },
     );
 
-    // Notify other drivers that ride is no longer available
+    // Notify rejected drivers
     const rejectedDrivers = ride.proposals
       .filter((p) => p._id?.toString() !== proposalId)
       .map((p) => ((p.driver as any)?._id ? (p.driver as any)._id : p.driver));
@@ -214,10 +213,9 @@ export class RideService {
     for (const driverId of rejectedDrivers) {
       await notificationService.notifyUser(
         driverId as any,
-        ride._id.toString(),
         "Ride has been accepted by another driver",
-        { rideId: ride._id.toString() },
         "RIDE_TAKEN",
+        { rideId: ride._id.toString() },
       );
     }
 
@@ -261,13 +259,12 @@ export class RideService {
         path: "proposals.driver",
         select: "name phoneNumber avatar",
       });
+
     if (!ride) {
       throw new AppError(httpStatus.NOT_FOUND, "Ride not found");
     }
 
-    const isRideUser = ride.user.toString() === userId;
-
-    if (!isRideUser) {
+    if (ride.user.toString() !== userId) {
       throw new AppError(httpStatus.FORBIDDEN, "You are not authorized");
     }
 
@@ -292,7 +289,6 @@ export class RideService {
       throw new AppError(httpStatus.NOT_FOUND, "Ride not found");
     }
 
-    // Only assigned driver can verify
     if (ride.driver?.toString() !== driverId.toString()) {
       throw new AppError(
         httpStatus.FORBIDDEN,
@@ -328,7 +324,6 @@ export class RideService {
       );
     }
 
-    // Timing-safe hash compare — same as registration
     const isValid = OTPUtils.verifyOTPSafely(ride.rideOtp, inputOtp);
 
     if (!isValid) {
@@ -341,12 +336,12 @@ export class RideService {
     ride.rideOtpExpiry = undefined as any;
     await ride.save();
 
+    // signature: notifyUser(userId, message, type, refs?, metadata?)
     await notificationService.notifyUser(
       ride.user,
-      ride._id.toString(),
       "Your ride has started!",
-      { rideId: ride._id.toString() },
       "RIDE_STARTED",
+      { rideId: ride._id.toString() },
     );
 
     return {

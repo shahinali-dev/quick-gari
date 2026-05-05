@@ -125,10 +125,9 @@ export class ReturnService {
     // Notify driver
     await notificationService.notifyUser(
       new Types.ObjectId(returnRide.driver.toString()),
-      updatedReturnRide!._id.toString(),
       "You got a booking for return trip",
-      { rideId: updatedReturnRide!._id.toString() },
       "GOT_RETURN_TRIP_BOOKING",
+      { rideId: updatedReturnRide!._id.toString() },
     );
 
     return updatedReturnRide;
