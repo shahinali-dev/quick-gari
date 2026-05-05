@@ -13,6 +13,7 @@ import ShareVehicleBookingModel from "../share-vehicle-booking/share_vehicle_boo
 import { PaymentFor, PaymentStatus } from "./payment.enum";
 import PaymentModel from "./payment.model";
 import { ISubmitPaymentPayload } from "./payment.validation";
+import { BookingStatus } from "../share-vehicle-booking/share_vehicle_booking.interface";
 
 export class PaymentService {
   // Submit payment for any service (Ride, Return, Share Vehicle Booking)
@@ -216,7 +217,7 @@ export class PaymentService {
         serviceDoc.payment = PaymentStatus.APPROVED;
         serviceDoc.status = BookingStatus.CONFIRMED; // adjust if enum differs
 
-        await generateAndSendOtpU({
+        await generateAndSendOtp({
           otpField: "bookingOtp",
           otpExpiryField: "bookingOtpExpiry",
           otpVerifiedField: "bookingOtpVerified",

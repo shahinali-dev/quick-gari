@@ -2,6 +2,7 @@ import httpStatus from "http-status";
 import { Types } from "mongoose";
 import { AppError } from "../../errors/app_error";
 import { normalizeDate, normalizeTime } from "../../utils/normalize";
+import { OTPUtils } from "../../utils/otp_utils";
 import QueryBuilder from "../../utils/query_builder.utils";
 import { carService } from "../car/car.service";
 import { notificationService } from "../notification/notification.service";
@@ -190,15 +191,6 @@ export class ReturnService {
     returnDoc.returnOtp = undefined as any;
     returnDoc.returnOtpExpiry = undefined as any;
     await returnDoc.save();
-
-    // passenger field e user id ache return model e
-    await notificationService.notifyUser(
-      returnDoc.passenger as any,
-      returnDoc._id.toString(),
-      "Your return journey has started!",
-      { returnId: returnDoc._id.toString() },
-      "RETURN_STARTED",
-    );
 
     return {
       message: "OTP verified. Return journey has started!",
