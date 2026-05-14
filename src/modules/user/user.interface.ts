@@ -19,6 +19,7 @@ export interface IUser {
   otpBlockedUntil?: Date;
   lastOtpSentAt?: Date;
   otpDeviceFingerprint?: string;
+  fcmTokens?: string[];
   createdAt?: Date | string;
   updatedAt?: Date | string;
 }

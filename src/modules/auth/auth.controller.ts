@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Router } from "express";
 import httpStatus from "http-status";
+import config from "../../config";
 import { AppError } from "../../errors/app_error";
 import { isAuth } from "../../middleware/is_auth";
 import { isVerify } from "../../middleware/is_verify";
@@ -18,18 +19,46 @@ router.post(
   "/signin",
   catchAsync(async (req, res) => {
     const userData = req.body;
-    const user = await authService.signIn(userData);
+    const result = await authService.signIn(userData);
+    const isProduction = config.NODE_ENV === "production";
 
-    res.status(httpStatus.OK).json({
-      success: true,
-      statusCode: httpStatus.OK,
-      message: "User logged in successfully",
-      data: user.user,
-      token: {
-        accessToken: user.accessToken,
-        refreshToken: user.refreshToken,
-      },
-    });
+    const clientType = req.headers["x-client-type"];
+
+    const cookieOptions = {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? ("none" as const) : ("lax" as const),
+    };
+
+    if (clientType === "web") {
+      res.cookie("refreshToken", result.refreshToken, {
+        ...cookieOptions,
+        maxAge: config.REFRESH_COOKIE_EXPIRES_MS,
+      });
+
+      res.cookie("accessToken", result.accessToken, {
+        ...cookieOptions,
+        maxAge: config.ACCESS_COOKIE_EXPIRES_MS,
+      });
+
+      return res.status(httpStatus.OK).json({
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "User logged in successfully",
+        data: result.user,
+      });
+    } else {
+      return res.status(httpStatus.OK).json({
+        success: true,
+        statusCode: httpStatus.OK,
+        message: "User logged in successfully",
+        data: {
+          user: result.user,
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
+        },
+      });
+    }
   }),
 );
 

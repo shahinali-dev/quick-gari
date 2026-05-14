@@ -1,3 +1,4 @@
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import express, { Application, Request, Response } from "express";
 import nunjucks from "nunjucks";
@@ -19,6 +20,7 @@ const corsOptions = {
   credentials: false,
 };
 
+app.use(cookieParser());
 app.use(express.json());
 app.use(cors(corsOptions));
 app.use("/api", router);

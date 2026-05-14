@@ -24,6 +24,38 @@ function isValidContextType(val: string): val is ChatContextType {
 // body: { contextType, contextId, receiverId, message }
 
 router.post(
+  "/conversation/:contextType/:contextId",
+  isAuth,
+  catchAsync(async (req, res) => {
+    const userId = req.user!._id.toString();
+    const { contextType, contextId } = req.params;
+    const { driverId } = req.body;
+
+    if (!isValidContextType(contextType)) {
+      return sendResponse(res, {
+        success: false,
+        statusCode: httpStatus.BAD_REQUEST,
+        message: `contextType must be one of: ${VALID_CONTEXT_TYPES.join(", ")}`,
+        data: null,
+      });
+    }
+
+    const result = await chatService.createConversation(
+      contextType,
+      contextId,
+      [userId, driverId],
+    );
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.CREATED,
+      message: "Conversation created successfully",
+      data: result,
+    });
+  }),
+);
+
+router.post(
   "/send",
   isAuth,
   catchAsync(async (req, res) => {

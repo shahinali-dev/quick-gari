@@ -9,11 +9,11 @@ import { ReturnStatus } from "../return/return.enum";
 import ReturnModel from "../return/return.model";
 import { RideStatus } from "../ride/ride.enum";
 import RideModel from "../ride/ride.model";
+import { BookingStatus } from "../share-vehicle-booking/share_vehicle_booking.interface";
 import ShareVehicleBookingModel from "../share-vehicle-booking/share_vehicle_booking.model";
 import { PaymentFor, PaymentStatus } from "./payment.enum";
 import PaymentModel from "./payment.model";
 import { ISubmitPaymentPayload } from "./payment.validation";
-import { BookingStatus } from "../share-vehicle-booking/share_vehicle_booking.interface";
 
 export class PaymentService {
   // Submit payment for any service (Ride, Return, Share Vehicle Booking)

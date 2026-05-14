@@ -12,7 +12,6 @@ export const isAuth = async (
   next: NextFunction,
 ) => {
   let accessToken = req.cookies?.accessToken;
-  console.log("Access Token from cookies:", accessToken);
 
   if (!accessToken && req.headers.authorization) {
     const authHeader = req.headers.authorization;
@@ -20,8 +19,6 @@ export const isAuth = async (
       accessToken = authHeader.split(" ")[1];
     }
   }
-
-  console.log("Access Token after checking headers:", accessToken);
 
   if (!accessToken) {
     return next(

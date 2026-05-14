@@ -181,7 +181,7 @@ export class RideService {
     ride.driver = selectedProposal.driver as any;
     ride.car = selectedProposal.car as any;
     ride.fare = selectedProposal.fare;
-    ride.status = RideStatus.PENDING;
+    ride.status = RideStatus.ACCEPTED;
 
     await ride.save();
 
@@ -242,14 +242,19 @@ export class RideService {
       throw new AppError(httpStatus.FORBIDDEN, "You are not authorized");
     }
 
-    return ride.proposals;
+    const result = ride.proposals.map((proposal: any) => ({
+      ...proposal.toObject(),
+      rideId: ride._id.toString(),
+    }));
+
+    return result;
   }
 
   // get ride by id
   async getRideById(rideId: string, userId: string) {
     const ride = await RideModel.findById(rideId)
       .select(
-        "startLocation endLocation date startTime proposals user payment status rideOtpVerified",
+        "startLocation endLocation date startTime proposals user payment status rideOtpVerified fare driver",
       )
       .populate({
         path: "proposals.car",
@@ -343,6 +348,8 @@ export class RideService {
       "RIDE_STARTED",
       { rideId: ride._id.toString() },
     );
+
+    // await chatService.closeChat("ride", ride._id.toString());
 
     return {
       message: "OTP verified. Ride has started!",

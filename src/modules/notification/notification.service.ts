@@ -1,6 +1,7 @@
-// notification.service.ts
+// modules/notification/notification.service.ts
 import { Types } from "mongoose";
 import { NotificationPayload, socketService } from "../../config/socket.config";
+import { sendPushNotification } from "../../utils/fcm.utils";
 import UserModel from "../user/user.model";
 import { NotificationModel } from "./notification.model";
 
@@ -20,6 +21,29 @@ function buildRefFields(refs?: NotificationRefs) {
     ...(refs?.carId && { carId: new Types.ObjectId(refs.carId) }),
     ...(refs?.paymentId && { paymentId: new Types.ObjectId(refs.paymentId) }),
   };
+}
+
+// FCM data payload — সব value string হতে হবে
+function buildFcmData(
+  type: string,
+  notificationId: string,
+  refs?: NotificationRefs,
+): Record<string, string> {
+  return {
+    type,
+    notificationId,
+    ...(refs?.rideId && { rideId: refs.rideId }),
+    ...(refs?.carId && { carId: refs.carId }),
+    ...(refs?.paymentId && { paymentId: refs.paymentId }),
+  };
+}
+
+// "RIDE_STARTED" → "Ride Started"
+function formatTitle(type: string): string {
+  return type
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 // ─── NotificationService ──────────────────────────────────────────────────────
@@ -47,8 +71,7 @@ class NotificationService {
         metadata,
       });
 
-      // DB save সফল হলেই socket emit করো
-      const payload: NotificationPayload = {
+      const socketPayload: NotificationPayload = {
         _id: notification._id.toString(),
         type,
         message,
@@ -58,11 +81,23 @@ class NotificationService {
         timestamp: new Date(),
       } as NotificationPayload & { isRead: boolean };
 
+      // ── Socket (online হলে real-time পাবে) ───────────────────────────────
       socketService.sendToUser(
         userObjId.toString(),
         "notification:new",
-        payload,
+        socketPayload,
       );
+
+      // ── FCM (offline হলেও push notification পাবে) ────────────────────────
+      const user = await UserModel.findById(userObjId).select("fcmTokens");
+      if (user?.fcmTokens?.length) {
+        await sendPushNotification(
+          user.fcmTokens,
+          formatTitle(type),
+          message,
+          buildFcmData(type, notification._id.toString(), refs),
+        );
+      }
 
       return notification;
     } catch (err) {
@@ -79,7 +114,9 @@ class NotificationService {
     refs?: NotificationRefs,
     metadata?: Record<string, unknown>,
   ) {
-    const admins = await UserModel.find({ role: "admin" }).select("_id");
+    const admins = await UserModel.find({ role: "admin" }).select(
+      "_id fcmTokens",
+    );
 
     if (admins.length === 0) {
       console.warn("⚠️ No admins found, skipping notification");
@@ -98,14 +135,10 @@ class NotificationService {
 
     try {
       const inserted = await NotificationModel.insertMany(notifications, {
-        ordered: false, // একটা fail করলে বাকিগুলো চলবে
+        ordered: false,
       });
 
-      // DB save সফল হলেই socket emit — room:admin এ একটাই emit
-      // Frontend এ mark-as-read এর জন্য প্রতিটা admin তার নিজের
-      // getAdminNotifications() call করে _id পাবে।
-      // তবে প্রথম inserted _id পাঠানো হচ্ছে reference হিসেবে।
-      const payload: NotificationPayload = {
+      const socketPayload: NotificationPayload = {
         _id: inserted[0]?._id?.toString(),
         type,
         message,
@@ -114,7 +147,22 @@ class NotificationService {
         timestamp: new Date(),
       };
 
-      socketService.sendToAllAdmins("notification:new", payload);
+      // ── Socket ────────────────────────────────────────────────────────────
+      socketService.sendToAllAdmins("notification:new", socketPayload);
+
+      // ── FCM — সব admin এর সব device এ পাঠাও ─────────────────────────────
+      const allAdminTokens = admins
+        .flatMap((a) => a.fcmTokens ?? [])
+        .filter(Boolean);
+
+      if (allAdminTokens.length) {
+        await sendPushNotification(
+          allAdminTokens,
+          formatTitle(type),
+          message,
+          buildFcmData(type, inserted[0]?._id?.toString() ?? "", refs),
+        );
+      }
 
       console.log(`✅ Notified ${admins.length} admins for '${type}'`);
       return inserted;
@@ -130,7 +178,9 @@ class NotificationService {
     rideId: Types.ObjectId,
     rideData: Record<string, unknown>,
   ) {
-    const carOwners = await UserModel.find({ isCarOwner: true }).select("_id");
+    const carOwners = await UserModel.find({ isCarOwner: true }).select(
+      "_id fcmTokens",
+    );
 
     if (carOwners.length === 0) {
       console.warn("⚠️ No car owners found");
@@ -151,16 +201,28 @@ class NotificationService {
     try {
       await NotificationModel.insertMany(notifications, { ordered: false });
 
-      // N+1 loop এর বদলে room:car-owners এ single emit
-      const payload: NotificationPayload = {
+      // ── Socket ────────────────────────────────────────────────────────────
+      socketService.sendToCarOwners("notification:new", {
         type: "RIDE_REQUEST",
         message,
         refs: { rideId: rideId.toString() },
         ride: rideData,
         timestamp: new Date(),
-      };
+      });
 
-      socketService.sendToCarOwners("notification:new", payload);
+      // ── FCM — সব car owner এর সব device এ পাঠাও ─────────────────────────
+      const allCarOwnerTokens = carOwners
+        .flatMap((o) => o.fcmTokens ?? [])
+        .filter(Boolean);
+
+      if (allCarOwnerTokens.length) {
+        await sendPushNotification(
+          allCarOwnerTokens,
+          "New Ride Request",
+          message,
+          { type: "RIDE_REQUEST", rideId: rideId.toString() },
+        );
+      }
 
       console.log(
         `✅ Ride notification sent to ${carOwners.length} car owners`,

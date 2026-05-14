@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 import { z } from "zod";
+import { parseExpiryToMs } from "../utils/parseExpiryToMs";
 
 dotenv.config();
 
@@ -40,6 +41,10 @@ const envSchema = z.object({
   ADMIN_PASSWORD: z.string().min(1, "ADMIN_PASSWORD is required"),
   ADMIN_PHONE_NUMBER: z.string().min(1, "ADMIN_PHONE_NUMBER is required"),
   ADMIN_GENDER: z.enum(["male", "female", "other"]).default("male"),
+
+  FCM_PROJECT_ID: z.string().nonempty("FCM_PROJECT_ID is required"),
+  FCM_CLIENT_EMAIL: z.string().nonempty("FCM_CLIENT_EMAIL is required"),
+  FCM_PRIVATE_KEY: z.string().nonempty("FCM_PRIVATE_KEY is required"),
 });
 
 // Parse & return validated env
@@ -85,4 +90,12 @@ export default {
   ADMIN_PASSWORD: env.ADMIN_PASSWORD,
   ADMIN_PHONE_NUMBER: env.ADMIN_PHONE_NUMBER,
   ADMIN_GENDER: env.ADMIN_GENDER,
+
+  FCM_PROJECT_ID: env.FCM_PROJECT_ID,
+  FCM_CLIENT_EMAIL: env.FCM_CLIENT_EMAIL,
+  FCM_PRIVATE_KEY: env.FCM_PRIVATE_KEY,
+
+  ACCESS_COOKIE_EXPIRES_MS: parseExpiryToMs(env.JWT_ACCESS_EXPIRE_IN),
+  REFRESH_COOKIE_EXPIRES_MS: parseExpiryToMs(env.JWT_REFRESH_EXPIRE_IN),
+  VERIFY_COOKIE_EXPIRES_MS: parseExpiryToMs(env.JWT_VERIFY_EXPIRE_IN),
 };

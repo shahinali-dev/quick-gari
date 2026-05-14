@@ -46,6 +46,7 @@ const userSchema = new Schema<IUser>(
       type: String,
       select: false,
     },
+    fcmTokens: { type: [String], default: [], select: false },
   },
   {
     timestamps: true,

@@ -208,6 +208,38 @@ export class UserService {
 
     return adminUser;
   }
+
+  // save FCM token for push notifications
+  async saveFcmToken(userId: string, fcmToken: string) {
+    const user = await await UserModel.findByIdAndUpdate(userId, {
+      $addToSet: { fcmTokens: fcmToken },
+    });
+
+    if (!user) {
+      throw new AppError(
+        httpStatus.NOT_FOUND,
+        "User not found for saving FCM token",
+      );
+    }
+
+    return { message: "FCM token saved successfully" };
+  }
+
+  // remove FCM token (e.g. on logout)
+  async removeFcmToken(userId: string, fcmToken: string) {
+    const user = await UserModel.findByIdAndUpdate(userId, {
+      $pull: { fcmTokens: fcmToken },
+    });
+
+    if (!user) {
+      throw new AppError(
+        httpStatus.NOT_FOUND,
+        "User not found for removing FCM token",
+      );
+    }
+
+    return { message: "FCM token removed successfully" };
+  }
 }
 
 // Export singleton instance

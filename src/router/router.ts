@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authRoute } from "../modules/auth/auth.controller";
 import { carRoute } from "../modules/car/car.controller";
+import chatRouter from "../modules/chat/chat.controller";
 import { notificationRouter } from "../modules/notification/notification.controller";
 import paymentRouter from "../modules/payment/payment.controller";
 import returnRouter from "../modules/return/return.controller";
@@ -53,6 +54,10 @@ const moduleRoutes = [
   {
     path: "/v1/notifications",
     route: notificationRouter,
+  },
+  {
+    path: "/v1/chat",
+    route: chatRouter,
   },
 ];
 
