@@ -1,7 +1,11 @@
 import httpStatus from "http-status";
 import { Types } from "mongoose";
 import { AppError } from "../../errors/app_error";
-import { normalizeDate, normalizeTime } from "../../utils/normalize";
+import {
+  combineDateAndTime,
+  normalizeDate,
+  normalizeTime,
+} from "../../utils/normalize";
 import { OTPUtils } from "../../utils/otp_utils";
 import QueryBuilder from "../../utils/query_builder.utils";
 import { carService } from "../car/car.service";
@@ -26,13 +30,24 @@ export class ReturnService {
     const date = normalizeDate(new Date(payload.date));
     const startTime = normalizeTime(new Date(payload.startTime));
 
+    // ✅ Past date/time check
+    const hours = startTime.getHours().toString().padStart(2, "0");
+    const minutes = startTime.getMinutes().toString().padStart(2, "0");
+    const rideDateTime = combineDateAndTime(date, `${hours}:${minutes}`);
+
+    if (rideDateTime <= new Date()) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Return ride cannot be created for a past date or time",
+      );
+    }
+
     const user = await userService.getUserById(userId);
     if (!user?.isCarOwner) {
       throw new AppError(httpStatus.UNAUTHORIZED, "You are not a car owner");
     }
 
     const isExistingReturnRide = await this.isExist(userId, date);
-
     if (isExistingReturnRide) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
@@ -93,6 +108,18 @@ export class ReturnService {
 
     if (!returnRide) {
       throw new AppError(httpStatus.NOT_FOUND, "Return ride not found");
+    }
+
+    const existingBooking = await ReturnModel.findOne({
+      passenger: userId,
+      status: ReturnStatus.BOOKED,
+    });
+
+    if (existingBooking) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "You already have an active return ride booking. Complete it before booking a new one",
+      );
     }
 
     if (returnRide.status !== ReturnStatus.AVAILABLE) {
@@ -187,14 +214,75 @@ export class ReturnService {
 
     // Clear OTP, mark ongoing
     returnDoc.returnOtpVerified = true;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     returnDoc.returnOtp = undefined as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     returnDoc.returnOtpExpiry = undefined as any;
+    returnDoc.status = ReturnStatus.COMPLETED;
     await returnDoc.save();
 
     return {
       message: "OTP verified. Return journey has started!",
       returnId: returnDoc._id,
     };
+  }
+
+  // Driver active return ride
+  async getActiveReturnRideForDriver(driverId: string) {
+    const activeReturnRide = await ReturnModel.findOne({
+      driver: driverId,
+      status: { $in: [ReturnStatus.BOOKED, ReturnStatus.AVAILABLE] },
+    });
+
+    if (!activeReturnRide) {
+      throw new AppError(
+        httpStatus.NOT_FOUND,
+        "No active return ride found for this driver",
+      );
+    }
+
+    return activeReturnRide;
+  }
+
+  // Passenger active return ride
+  async getActiveReturnRideForPassenger(passengerId: string) {
+    const activeReturnRide = await ReturnModel.findOne({
+      passenger: passengerId,
+      status: ReturnStatus.BOOKED,
+    });
+
+    if (!activeReturnRide) {
+      throw new AppError(
+        httpStatus.NOT_FOUND,
+        "No active return ride found for this passenger",
+      );
+    }
+
+    return activeReturnRide;
+  }
+
+  // Driver completed return rides
+  async getCompletedReturnRidesForDriver(driverId: string) {
+    const completedRides = await ReturnModel.find({
+      driver: driverId,
+      status: ReturnStatus.COMPLETED,
+    })
+      .populate("passenger", "name phoneNumber avatar")
+      .populate("car");
+
+    return completedRides;
+  }
+
+  // Passenger completed return rides
+  async getCompletedReturnRidesForPassenger(passengerId: string) {
+    const completedRides = await ReturnModel.find({
+      passenger: passengerId,
+      status: ReturnStatus.COMPLETED,
+    })
+      .populate("driver", "name phoneNumber avatar")
+      .populate("car");
+
+    return completedRides;
   }
 }
 

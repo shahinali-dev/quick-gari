@@ -119,5 +119,81 @@ router.post(
   }),
 );
 
+// Driver Active Return Ride
+router.get(
+  "/driver/active",
+  isAuth,
+  catchAsync(async (req, res) => {
+    const driverId = req.user!._id.toString();
+
+    const activeReturnRide =
+      await returnService.getActiveReturnRideForDriver(driverId);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Active return ride fetched successfully",
+      data: activeReturnRide,
+    });
+  }),
+);
+
+// Passenger Active Return Ride
+router.get(
+  "/passenger/active",
+  isAuth,
+  catchAsync(async (req, res) => {
+    const passengerId = req.user!._id.toString();
+
+    const activeReturnRide =
+      await returnService.getActiveReturnRideForPassenger(passengerId);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Active return ride fetched successfully",
+      data: activeReturnRide,
+    });
+  }),
+);
+
+// Driver Completed Return Rides
+router.get(
+  "/driver/completed",
+  isAuth,
+  catchAsync(async (req, res) => {
+    const driverId = req.user!._id.toString();
+
+    const completedRides =
+      await returnService.getCompletedReturnRidesForDriver(driverId);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Completed return rides fetched successfully",
+      data: completedRides,
+    });
+  }),
+);
+
+// Passenger Completed Return Rides
+router.get(
+  "/passenger/completed",
+  isAuth,
+  catchAsync(async (req, res) => {
+    const passengerId = req.user!._id.toString();
+
+    const completedRides =
+      await returnService.getCompletedReturnRidesForPassenger(passengerId);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Completed return rides fetched successfully",
+      data: completedRides,
+    });
+  }),
+);
+
 const returnRouter = router;
 export default returnRouter;

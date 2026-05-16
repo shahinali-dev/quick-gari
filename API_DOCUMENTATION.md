@@ -1157,6 +1157,180 @@ Authorization: Bearer <accessToken>
 }
 ```
 
+### 5. Verify OTP (POST)
+
+**Endpoint:** `POST /v1/return-trip/:returnId/verify-otp`
+
+**Access:** ✅ Authenticated users
+
+**Request Body:**
+
+```json
+{
+  "otp": "1234"
+}
+```
+
+**Response (Success - 200):**
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "OTP verified successfully",
+  "data": {
+    "_id": "64a8f9e2b1234567890abce1",
+    "startLocation": "Banani, Dhaka",
+    "endLocation": "Airport, Dhaka",
+    "status": "IN_PROGRESS"
+  }
+}
+```
+
+**Roles:** ✅ Driver
+
+---
+
+### 6. Get Driver Active Return Ride (GET)
+
+**Endpoint:** `GET /v1/return-trip/driver/active`
+
+**Access:** ✅ Authenticated users (Driver)
+
+**Response (Success - 200):**
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Active return ride fetched successfully",
+  "data": {
+    "_id": "64a8f9e2b1234567890abce1",
+    "driver": "64a8f9c2b1234567890abcd2",
+    "startLocation": "Banani, Dhaka",
+    "endLocation": "Airport, Dhaka",
+    "date": "2026-03-20",
+    "startTime": "18:00",
+    "fare": 800,
+    "status": "IN_PROGRESS",
+    "bookedPassengers": [
+      {
+        "_id": "64a8f9c2b1234567890abcd1",
+        "name": "Karim Ahmed"
+      }
+    ]
+  }
+}
+```
+
+**Roles:** ✅ Driver
+
+---
+
+### 7. Get Passenger Active Return Ride (GET)
+
+**Endpoint:** `GET /v1/return-trip/passenger/active`
+
+**Access:** ✅ Authenticated users (Passenger)
+
+**Response (Success - 200):**
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Active return ride fetched successfully",
+  "data": {
+    "_id": "64a8f9e2b1234567890abce1",
+    "driver": {
+      "_id": "64a8f9c2b1234567890abcd2",
+      "name": "Rahul Islam",
+      "phoneNumber": "+8801912345678",
+      "rating": 4.8
+    },
+    "startLocation": "Banani, Dhaka",
+    "endLocation": "Airport, Dhaka",
+    "date": "2026-03-20",
+    "startTime": "18:00",
+    "fare": 800,
+    "status": "IN_PROGRESS"
+  }
+}
+```
+
+**Roles:** ✅ Passenger
+
+---
+
+### 8. Get Driver Completed Return Rides (GET)
+
+**Endpoint:** `GET /v1/return-trip/driver/completed`
+
+**Access:** ✅ Authenticated users (Driver)
+
+**Response (Success - 200):**
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Completed return rides fetched successfully",
+  "data": [
+    {
+      "_id": "64a8f9e2b1234567890abce1",
+      "startLocation": "Banani, Dhaka",
+      "endLocation": "Airport, Dhaka",
+      "date": "2026-03-20",
+      "startTime": "18:00",
+      "fare": 800,
+      "status": "COMPLETED",
+      "bookedPassengers": [
+        {
+          "_id": "64a8f9c2b1234567890abcd1",
+          "name": "Karim Ahmed"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Roles:** ✅ Driver
+
+---
+
+### 9. Get Passenger Completed Return Rides (GET)
+
+**Endpoint:** `GET /v1/return-trip/passenger/completed`
+
+**Access:** ✅ Authenticated users (Passenger)
+
+**Response (Success - 200):**
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Completed return rides fetched successfully",
+  "data": [
+    {
+      "_id": "64a8f9e2b1234567890abce1",
+      "driver": {
+        "_id": "64a8f9c2b1234567890abcd2",
+        "name": "Rahul Islam",
+        "rating": 4.8
+      },
+      "startLocation": "Banani, Dhaka",
+      "endLocation": "Airport, Dhaka",
+      "date": "2026-03-20",
+      "startTime": "18:00",
+      "fare": 800,
+      "status": "COMPLETED"
+    }
+  ]
+}
+```
+
 **Roles:** ✅ Passenger
 
 ---
