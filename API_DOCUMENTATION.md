@@ -984,6 +984,180 @@ Authorization: Bearer <accessToken>
 
 ---
 
+### 8. Verify Ride OTP (POST)
+
+**Endpoint:** `POST /v1/ride/:rideId/verify-otp`
+
+**Access:** ✅ Authenticated users
+
+**Request Body:**
+
+```json
+{
+  "otp": "123456"
+}
+```
+
+**Response (Success - 200):**
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "OTP verified successfully",
+  "data": {
+    "_id": "64a8f9c2b1234567890abcde",
+    "rideOtpVerified": true,
+    "status": "COMPLETED",
+    "completedAt": "2024-03-15T09:30:00Z"
+  }
+}
+```
+
+**Roles:** ✅ Driver
+
+---
+
+### 9. Get Driver Active Rides (GET)
+
+**Endpoint:** `GET /v1/ride/driver/active`
+
+**Access:** ✅ Authenticated users
+
+**Response (Success - 200):**
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Active rides fetched successfully",
+  "data": [
+    {
+      "_id": "64a8f9c2b1234567890abcde",
+      "user": {
+        "_id": "64a8f9c2b1234567890abcd1",
+        "name": "Karim Ahmed",
+        "phoneNumber": "+8801712345678"
+      },
+      "startLocation": "Mirpur, Dhaka",
+      "endLocation": "Gulshan, Dhaka",
+      "status": "ACCEPTED",
+      "fare": 500,
+      "date": "2026-03-15",
+      "startTime": "09:00"
+    }
+  ]
+}
+```
+
+**Roles:** ✅ Driver
+
+---
+
+### 10. Get Passenger Active Rides (GET)
+
+**Endpoint:** `GET /v1/ride/passenger/active`
+
+**Access:** ✅ Authenticated users
+
+**Response (Success - 200):**
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Active rides fetched successfully",
+  "data": [
+    {
+      "_id": "64a8f9c2b1234567890abcde",
+      "driver": {
+        "_id": "64a8f9c2b1234567890abcd2",
+        "name": "Rahul Islam",
+        "phoneNumber": "+8801912345678"
+      },
+      "startLocation": "Mirpur, Dhaka",
+      "endLocation": "Gulshan, Dhaka",
+      "status": "ACCEPTED",
+      "fare": 500,
+      "date": "2026-03-15",
+      "startTime": "09:00"
+    }
+  ]
+}
+```
+
+**Roles:** ✅ Passenger
+
+---
+
+### 11. Get User Completed Rides (GET)
+
+**Endpoint:** `GET /v1/ride/list/user/completed`
+
+**Access:** ✅ Authenticated users
+
+**Response (Success - 200):**
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Completed rides fetched successfully",
+  "data": [
+    {
+      "_id": "64a8f9c2b1234567890abcde",
+      "driver": {
+        "_id": "64a8f9c2b1234567890abcd2",
+        "name": "Rahul Islam"
+      },
+      "startLocation": "Mirpur, Dhaka",
+      "endLocation": "Gulshan, Dhaka",
+      "fare": 500,
+      "status": "COMPLETED",
+      "completedAt": "2024-03-15T09:45:00Z"
+    }
+  ]
+}
+```
+
+**Roles:** ✅ Passenger
+
+---
+
+### 12. Get Driver Completed Rides (GET)
+
+**Endpoint:** `GET /v1/ride/list/driver/completed`
+
+**Access:** ✅ Authenticated users
+
+**Response (Success - 200):**
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Completed rides fetched successfully",
+  "data": [
+    {
+      "_id": "64a8f9c2b1234567890abcde",
+      "user": {
+        "_id": "64a8f9c2b1234567890abcd1",
+        "name": "Karim Ahmed"
+      },
+      "startLocation": "Mirpur, Dhaka",
+      "endLocation": "Gulshan, Dhaka",
+      "fare": 500,
+      "status": "COMPLETED",
+      "completedAt": "2024-03-15T09:45:00Z"
+    }
+  ]
+}
+```
+
+**Roles:** ✅ Driver
+
+---
+
 ## Return Trip APIs
 
 ### 1. Create Return Ride (POST)
