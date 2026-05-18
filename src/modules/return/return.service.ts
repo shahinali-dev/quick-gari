@@ -30,15 +30,29 @@ export class ReturnService {
     const date = normalizeDate(new Date(payload.date));
     const startTime = normalizeTime(new Date(payload.startTime));
 
-    // ✅ Past date/time check
     const hours = startTime.getHours().toString().padStart(2, "0");
     const minutes = startTime.getMinutes().toString().padStart(2, "0");
     const rideDateTime = combineDateAndTime(date, `${hours}:${minutes}`);
 
-    if (rideDateTime <= new Date()) {
+    const now = new Date();
+
+    // ✅ Past check
+    if (rideDateTime <= now) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
         "Return ride cannot be created for a past date or time",
+      );
+    }
+
+    // ✅ Future limit check — max 10 days in advance
+    const MAX_ADVANCE_DAYS = 10;
+    const maxAllowedDate = new Date(
+      now.getTime() + MAX_ADVANCE_DAYS * 24 * 60 * 60 * 1000,
+    );
+    if (rideDateTime > maxAllowedDate) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        `Return ride cannot be scheduled more than ${MAX_ADVANCE_DAYS} days in advance`,
       );
     }
 
@@ -75,7 +89,7 @@ export class ReturnService {
     const returnTripsQuery = new QueryBuilder(
       ReturnModel.find({ status: ReturnStatus.AVAILABLE })
         .populate("driver", "name phoneNumber avatar")
-        .populate("car"),
+        .populate("car", "name features"),
       query,
     )
       .search(["startLocation", "endLocation"])
@@ -93,7 +107,7 @@ export class ReturnService {
   async getReturnRideById(id: string) {
     const returnRide = await ReturnModel.findById(id)
       .populate("driver", "name phoneNumber avatar ")
-      .populate("car")
+      .populate("car", "name features")
       .populate("passenger", "name phoneNumber avatar");
 
     if (!returnRide) {
@@ -147,7 +161,7 @@ export class ReturnService {
     const updatedReturnRide = await ReturnModel.findById(id)
       .populate("passenger", "name phoneNumber avatar")
       .populate("driver", "name phoneNumber avatar")
-      .populate("car");
+      .populate("car", "name features");
 
     // Notify driver
     await notificationService.notifyUser(
@@ -227,38 +241,49 @@ export class ReturnService {
     };
   }
 
-  // Driver active return ride
-  async getActiveReturnRideForDriver(driverId: string) {
-    const activeReturnRide = await ReturnModel.findOne({
+  // Driver active return rides
+  async getActiveReturnRidesForDriver(driverId: string) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const activeReturnRides = await ReturnModel.find({
       driver: driverId,
       status: { $in: [ReturnStatus.BOOKED, ReturnStatus.AVAILABLE] },
-    });
+      createdAt: { $gte: today },
+    })
+      .populate("passenger", "name phoneNumber avatar")
+      .populate("car", "name features");
 
-    if (!activeReturnRide) {
+    if (!activeReturnRides.length) {
       throw new AppError(
         httpStatus.NOT_FOUND,
-        "No active return ride found for this driver",
+        "No active return rides found for this driver",
       );
     }
 
-    return activeReturnRide;
+    return activeReturnRides;
   }
 
-  // Passenger active return ride
-  async getActiveReturnRideForPassenger(passengerId: string) {
-    const activeReturnRide = await ReturnModel.findOne({
+  // Passenger active return rides
+  async getActiveReturnRidesForPassenger(passengerId: string) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const activeReturnRides = await ReturnModel.find({
       passenger: passengerId,
       status: ReturnStatus.BOOKED,
-    });
+      createdAt: { $gte: today },
+    })
+      .populate("driver", "name phoneNumber avatar")
+      .populate("car", "name features");
 
-    if (!activeReturnRide) {
+    if (!activeReturnRides.length) {
       throw new AppError(
         httpStatus.NOT_FOUND,
-        "No active return ride found for this passenger",
+        "No active return rides found for this passenger",
       );
     }
 
-    return activeReturnRide;
+    return activeReturnRides;
   }
 
   // Driver completed return rides
@@ -268,7 +293,7 @@ export class ReturnService {
       status: ReturnStatus.COMPLETED,
     })
       .populate("passenger", "name phoneNumber avatar")
-      .populate("car");
+      .populate("car", "name features");
 
     return completedRides;
   }
@@ -280,7 +305,7 @@ export class ReturnService {
       status: ReturnStatus.COMPLETED,
     })
       .populate("driver", "name phoneNumber avatar")
-      .populate("car");
+      .populate("car", "name features");
 
     return completedRides;
   }

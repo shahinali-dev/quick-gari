@@ -155,5 +155,78 @@ router.post(
     });
   }),
 );
+
+// Driver Active Rides
+router.get(
+  "/driver/active",
+  isAuth,
+  catchAsync(async (req, res) => {
+    const driverId = req.user!._id.toString();
+
+    const activeRides = await rideService.getDriverActiveRides(driverId);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Active rides fetched successfully",
+      data: activeRides,
+    });
+  }),
+);
+
+// Passenger Active Rides
+router.get(
+  "/passenger/active",
+  isAuth,
+  catchAsync(async (req, res) => {
+    const passengerId = req.user!._id.toString();
+
+    const activeRides = await rideService.getPassengerActiveRides(passengerId);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Active rides fetched successfully",
+      data: activeRides,
+    });
+  }),
+);
+
+// user completed rides
+router.get(
+  "/list/user/completed",
+  isAuth,
+  catchAsync(async (req, res) => {
+    const userId = req.user!._id.toString();
+
+    const rides = await rideService.getUserCompletedRides(userId);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Completed rides fetched successfully",
+      data: rides,
+    });
+  }),
+);
+
+// driver completed rides
+router.get(
+  "/list/driver/completed",
+  isAuth,
+  catchAsync(async (req, res) => {
+    const driverId = req.user!._id.toString();
+
+    const rides = await rideService.getDriverCompletedRides(driverId);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Completed rides fetched successfully",
+      data: rides,
+    });
+  }),
+);
+
 const rideRouter = router;
 export default rideRouter;

@@ -356,6 +356,73 @@ export class RideService {
       rideId: ride._id,
     };
   }
+
+  // get driver active rides
+  async getDriverActiveRides(driverId: string) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const activeRides = await RideModel.find({
+      driver: driverId,
+      status: { $in: [RideStatus.ACCEPTED, RideStatus.ONGOING] },
+      createdAt: { $gte: today },
+    })
+      .populate("user", "name phoneNumber avatar")
+      .populate("car", "name features");
+
+    return activeRides;
+  }
+
+  // get passenger active rides
+  async getPassengerActiveRides(passengerId: string) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const activeRides = await RideModel.find({
+      user: passengerId,
+      status: {
+        $nin: [RideStatus.COMPLETED, RideStatus.CANCELLED, RideStatus.REJECTED],
+      },
+      createdAt: { $gte: today },
+    })
+      .populate("driver", "name phoneNumber avatar")
+      .populate("car", "carName features user");
+
+    return activeRides;
+  }
+  // user completed ride lists
+  async getUserCompletedRides(userId: string) {
+    const rides = await RideModel.find({
+      user: userId,
+      status: RideStatus.COMPLETED,
+    })
+      .select("startLocation endLocation date startTime status fare driver car")
+      .populate({
+        path: "driver",
+        select: "name phoneNumber avatar",
+      })
+      .populate({
+        path: "car",
+        select: "name features",
+      })
+      .sort({ createdAt: -1 });
+
+    return rides;
+  }
+
+  // driver completed ride lists
+  async getDriverCompletedRides(driverId: string) {
+    const rides = await RideModel.find({
+      driver: driverId,
+      status: RideStatus.COMPLETED,
+    })
+      .select("startLocation endLocation date startTime status fare user car")
+      .populate({ path: "user", select: "name phoneNumber avatar" })
+      .populate({ path: "car", select: "name features" })
+      .sort({ createdAt: -1 });
+
+    return rides;
+  }
 }
 
 export const rideService = new RideService();

@@ -126,33 +126,33 @@ router.get(
   catchAsync(async (req, res) => {
     const driverId = req.user!._id.toString();
 
-    const activeReturnRide =
-      await returnService.getActiveReturnRideForDriver(driverId);
+    const activeReturnRides =
+      await returnService.getActiveReturnRidesForDriver(driverId);
 
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.OK,
-      message: "Active return ride fetched successfully",
-      data: activeReturnRide,
+      message: "Active return rides fetched successfully",
+      data: activeReturnRides,
     });
   }),
 );
 
-// Passenger Active Return Ride
+// Passenger Active Return Rides
 router.get(
   "/passenger/active",
   isAuth,
   catchAsync(async (req, res) => {
     const passengerId = req.user!._id.toString();
 
-    const activeReturnRide =
-      await returnService.getActiveReturnRideForPassenger(passengerId);
+    const activeReturnRides =
+      await returnService.getActiveReturnRidesForPassenger(passengerId);
 
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.OK,
-      message: "Active return ride fetched successfully",
-      data: activeReturnRide,
+      message: "Active return rides fetched successfully",
+      data: activeReturnRides,
     });
   }),
 );
