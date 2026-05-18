@@ -109,7 +109,9 @@ export class PaymentService {
       // ShareVehicleBooking e passenger embedded — populate lagbe na
       serviceDoc = await ShareVehicleBookingModel.findById(
         payment.shareVehicleBookingId,
-      ).select("+bookingOtp +bookingOtpExpiry +bookingOtpVerified");
+      )
+        .select("+bookingOtp +bookingOtpExpiry +bookingOtpVerified")
+        .populate("shareVehicle");
     }
 
     if (!serviceDoc) {
@@ -139,7 +141,6 @@ export class PaymentService {
       otpField: string;
       otpExpiryField: string;
       otpVerifiedField: string;
-      expiryMinutes: number;
       emailSubject: string;
       emailHeading: string;
       emailBodyText: string;
@@ -148,17 +149,29 @@ export class PaymentService {
       const otp = OTPUtils.generateSecureOTP();
       const hashedOtp = OTPUtils.hashOTP(otp);
 
+      // Calculate OTP expiry based on service date/time
+      let otpExpiryDate: Date;
+      if (payment.rideId) {
+        // Ride: startTime is the actual ride time
+        otpExpiryDate = new Date(serviceDoc.startTime);
+      } else if (payment.returnId) {
+        // Return: startTime is the actual return time
+        otpExpiryDate = new Date(serviceDoc.startTime);
+      } else {
+        // ShareVehicleBooking: journeyDate from related ShareVehicle
+        otpExpiryDate = new Date(
+          serviceDoc.shareVehicle?.journeyDate || new Date(),
+        );
+      }
+
       serviceDoc[config.otpField] = hashedOtp;
-      serviceDoc[config.otpExpiryField] = new Date(
-        Date.now() + config.expiryMinutes * 60 * 1000,
-      );
+      serviceDoc[config.otpExpiryField] = otpExpiryDate;
       serviceDoc[config.otpVerifiedField] = false;
 
       await EmailService.sendOTPEmailGeneric({
         email: user.email,
         name: user.name,
         otp,
-        expiryMinutes: config.expiryMinutes,
         subject: config.emailSubject,
         heading: config.emailHeading,
         icon: "🚗",
@@ -188,7 +201,6 @@ export class PaymentService {
           otpField: "rideOtp",
           otpExpiryField: "rideOtpExpiry",
           otpVerifiedField: "rideOtpVerified",
-          expiryMinutes: 30,
           emailSubject: "Your Ride OTP - Quick Gari",
           emailHeading: "Your Ride Is Confirmed!",
           emailBodyText:
@@ -205,7 +217,6 @@ export class PaymentService {
           otpField: "returnOtp",
           otpExpiryField: "returnOtpExpiry",
           otpVerifiedField: "returnOtpVerified",
-          expiryMinutes: 30,
           emailSubject: "Your Return Booking OTP - Quick Gari",
           emailHeading: "Return Booking Confirmed!",
           emailBodyText:
@@ -221,7 +232,6 @@ export class PaymentService {
           otpField: "bookingOtp",
           otpExpiryField: "bookingOtpExpiry",
           otpVerifiedField: "bookingOtpVerified",
-          expiryMinutes: 30,
           emailSubject: "Your Booking OTP - Quick Gari",
           emailHeading: "Booking Confirmed!",
           emailBodyText:
@@ -256,7 +266,6 @@ export class PaymentService {
         email: user.email,
         name: user.name,
         otp: "—", // OTP nai, placeholder
-        expiryMinutes: 0,
         subject: "Payment Rejected - Quick Gari",
         heading: "Payment Could Not Be Processed",
         icon: "❌",
