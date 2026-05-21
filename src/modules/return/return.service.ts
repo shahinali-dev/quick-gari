@@ -89,7 +89,7 @@ export class ReturnService {
     const returnTripsQuery = new QueryBuilder(
       ReturnModel.find({ status: ReturnStatus.AVAILABLE })
         .populate("driver", "name phoneNumber avatar")
-        .populate("car", "name features"),
+        .populate("car", "carName features"),
       query,
     )
       .search(["startLocation", "endLocation"])
@@ -107,7 +107,7 @@ export class ReturnService {
   async getReturnRideById(id: string) {
     const returnRide = await ReturnModel.findById(id)
       .populate("driver", "name phoneNumber avatar ")
-      .populate("car", "name features")
+      .populate("car", "carName features")
       .populate("passenger", "name phoneNumber avatar");
 
     if (!returnRide) {
@@ -161,7 +161,7 @@ export class ReturnService {
     const updatedReturnRide = await ReturnModel.findById(id)
       .populate("passenger", "name phoneNumber avatar")
       .populate("driver", "name phoneNumber avatar")
-      .populate("car", "name features");
+      .populate("car", "carName features");
 
     // Notify driver
     await notificationService.notifyUser(
@@ -252,7 +252,7 @@ export class ReturnService {
       createdAt: { $gte: today },
     })
       .populate("passenger", "name phoneNumber avatar")
-      .populate("car", "name features");
+      .populate("car", "carName features");
 
     if (!activeReturnRides.length) {
       throw new AppError(
@@ -274,7 +274,7 @@ export class ReturnService {
       createdAt: { $gte: today },
     })
       .populate("driver", "name phoneNumber avatar")
-      .populate("car", "name features");
+      .populate("car", "carName features");
 
     if (!activeReturnRides.length) {
       throw new AppError(
@@ -293,7 +293,7 @@ export class ReturnService {
       status: ReturnStatus.COMPLETED,
     })
       .populate("passenger", "name phoneNumber avatar")
-      .populate("car", "name features");
+      .populate("car", "carName features");
 
     return completedRides;
   }
@@ -305,7 +305,7 @@ export class ReturnService {
       status: ReturnStatus.COMPLETED,
     })
       .populate("driver", "name phoneNumber avatar")
-      .populate("car", "name features");
+      .populate("car", "carName features");
 
     return completedRides;
   }
