@@ -322,10 +322,32 @@ export class RideService {
       );
     }
 
-    if (!ride.rideOtpExpiry || new Date() > ride.rideOtpExpiry) {
+    if (!ride.rideOtpExpiry) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "OTP has expired. Please contact support to resend",
+        "No OTP expiry found. Please contact support",
+      );
+    }
+    const now = new Date().getTime();
+    const expiryTime = new Date(ride.rideOtpExpiry).getTime();
+
+    // 10 min আগে (valid start)
+    const validFrom = expiryTime - 10 * 60 * 1000;
+
+    // 30 min পরে (valid end)
+    const validUntil = expiryTime + 30 * 60 * 1000;
+
+    if (now < validFrom) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Ride has not started yet. OTP will be valid 10 minutes before start time",
+      );
+    }
+
+    if (now > validUntil) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "OTP has expired. Please request a new one",
       );
     }
 

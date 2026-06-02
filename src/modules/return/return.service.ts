@@ -213,10 +213,33 @@ export class ReturnService {
       );
     }
 
-    if (!returnDoc.returnOtpExpiry || new Date() > returnDoc.returnOtpExpiry) {
+    if (!returnDoc.returnOtpExpiry) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "OTP has expired. Please contact support to resend",
+        "No OTP expiry found for this booking. Please contact support",
+      );
+    }
+
+    const now = new Date().getTime();
+    const expiryTime = new Date(returnDoc.returnOtpExpiry).getTime();
+
+    // OTP valid 10 min before expiry
+    const validForm = expiryTime - 10 * 60 * 1000;
+
+    // 30 min OTP expiry
+    const validUntil = expiryTime + 30 * 60 * 1000;
+
+    if (now < validForm) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Return trip has not started yet. OTP will be valid 10 minutes before start time",
+      );
+    }
+
+    if (now > validUntil) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "OTP has expired. Please contact support to generate a new OTP",
       );
     }
 
