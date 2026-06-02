@@ -7,8 +7,10 @@ import { EmailService } from "../email/email.service";
 import { notificationService } from "../notification/notification.service";
 import { ReturnStatus } from "../return/return.enum";
 import ReturnModel from "../return/return.model";
+import { returnService } from "../return/return.service";
 import { RideStatus } from "../ride/ride.enum";
 import RideModel from "../ride/ride.model";
+import { rideService } from "../ride/ride.service";
 import { BookingStatus } from "../share-vehicle-booking/share_vehicle_booking.interface";
 import ShareVehicleBookingModel from "../share-vehicle-booking/share_vehicle_booking.model";
 import { PaymentFor, PaymentStatus } from "./payment.enum";
@@ -23,8 +25,13 @@ export class PaymentService {
     paymentFor: PaymentFor,
     amount: number,
   ) {
-    // Validate at least one reference ID is provided
-    const { rideId, returnId, shareVehicleBookingId, transactionId } = data;
+    const {
+      rideId,
+      returnId,
+      shareVehicleBookingId,
+      transactionId,
+      proposalId,
+    } = data;
 
     if (!rideId && !returnId && !shareVehicleBookingId) {
       throw new AppError(
@@ -33,11 +40,16 @@ export class PaymentService {
       );
     }
 
-    // Check if transaction ID already exists
-    const existingPayment = await PaymentModel.findOne({
-      transactionId,
-    });
+    // rideId থাকলে proposalId mandatory
+    if (rideId && !proposalId) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "proposalId is required when rideId is provided",
+      );
+    }
 
+    // Check if transaction ID already exists
+    const existingPayment = await PaymentModel.findOne({ transactionId });
     if (existingPayment) {
       throw new AppError(httpStatus.BAD_REQUEST, "Transaction ID already used");
     }
@@ -57,6 +69,16 @@ export class PaymentService {
       status: PaymentStatus.PENDING,
       submittedAt: new Date(),
     });
+
+    // rideId থাকলে proposal accept করো
+    if (rideId && proposalId) {
+      await rideService.acceptProposal(rideId, userId, proposalId);
+    }
+
+    // returnId থাকলে return ride book করো
+    if (returnId) {
+      await returnService.bookReturnRide(returnId, userId);
+    }
 
     const populatedPayment = await PaymentModel.findById(payment._id).populate(
       "userId",

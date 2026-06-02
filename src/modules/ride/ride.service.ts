@@ -79,6 +79,7 @@ export class RideService {
   }
 
   async getAllRequestedRides() {
+    console.log(new Date());
     const rides = await RideModel.find({ status: RideStatus.REQUESTED })
       .populate("user", "name phoneNumber")
       .sort({ createdAt: -1 });

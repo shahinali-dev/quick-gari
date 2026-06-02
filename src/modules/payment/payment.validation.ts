@@ -2,6 +2,7 @@ import { z } from "zod";
 
 const submitPaymentValidationSchema = z.object({
   rideId: z.string().optional(),
+  proposalId: z.string().optional(),
   returnId: z.string().optional(),
   shareVehicleBookingId: z.string().optional(),
   transactionId: z.string().min(1, "Transaction ID is required"),

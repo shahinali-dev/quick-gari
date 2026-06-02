@@ -49,8 +49,9 @@ router.post(
           data: null,
         });
       }
+
       paymentFor = PaymentFor.RETURN;
-      amount = returnDoc.amount || 0;
+      amount = returnDoc.fare || 0;
     } else if (shareVehicleBookingId) {
       const booking = await ShareVehicleBookingModel.findById(
         shareVehicleBookingId,
