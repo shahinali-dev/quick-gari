@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import httpStatus from "http-status";
-import { Types } from "mongoose";
+import { Types, startSession } from "mongoose";
 import { AppError } from "../../errors/app_error";
 import { OTPUtils } from "../../utils/otp_utils";
 import { EmailService } from "../email/email.service";
@@ -54,46 +54,79 @@ export class PaymentService {
       throw new AppError(httpStatus.BAD_REQUEST, "Transaction ID already used");
     }
 
-    // Create payment record
-    const payment = await PaymentModel.create({
-      transactionId,
-      amount,
-      paymentMethod: "bkash",
-      paymentFor,
-      rideId: rideId ? new Types.ObjectId(rideId) : undefined,
-      returnId: returnId ? new Types.ObjectId(returnId) : undefined,
-      shareVehicleBookingId: shareVehicleBookingId
-        ? new Types.ObjectId(shareVehicleBookingId)
-        : undefined,
-      userId: new Types.ObjectId(userId),
-      status: PaymentStatus.PENDING,
-      submittedAt: new Date(),
-    });
+    // Start MongoDB session for transaction
+    const session = await startSession();
+    session.startTransaction();
 
-    // rideId থাকলে proposal accept করো
-    if (rideId && proposalId) {
-      await rideService.acceptProposal(rideId, userId, proposalId);
+    try {
+      // Create payment record with session
+      const paymentData = await PaymentModel.create(
+        [
+          {
+            transactionId,
+            amount,
+            paymentMethod: "bkash",
+            paymentFor,
+            rideId: rideId ? new Types.ObjectId(rideId) : undefined,
+            returnId: returnId ? new Types.ObjectId(returnId) : undefined,
+            shareVehicleBookingId: shareVehicleBookingId
+              ? new Types.ObjectId(shareVehicleBookingId)
+              : undefined,
+            userId: new Types.ObjectId(userId),
+            status: PaymentStatus.PENDING,
+            submittedAt: new Date(),
+          },
+        ],
+        { session },
+      );
+
+      const payment = paymentData[0];
+
+      // rideId থাকলে proposal accept করো
+      if (rideId && proposalId) {
+        try {
+          await rideService.acceptProposal(rideId, userId, proposalId);
+        } catch (err) {
+          await session.abortTransaction();
+          throw err;
+        }
+      }
+
+      // returnId থাকলে return ride book করো
+      if (returnId) {
+        try {
+          await returnService.bookReturnRide(returnId, userId);
+        } catch (err) {
+          await session.abortTransaction();
+          throw err;
+        }
+      }
+
+      // Commit transaction
+      await session.commitTransaction();
+
+      const populatedPayment = await PaymentModel.findById(
+        payment._id,
+      ).populate("userId", "name phoneNumber");
+
+      const userData = populatedPayment?.userId as any;
+      await notificationService.notifyAdmins(
+        `Payment submitted by ${userData?.name || "User"} — ${paymentFor}`,
+        "PAYMENT_SUBMITTED",
+        { paymentId: payment._id.toString() },
+        { transactionId, amount, paymentFor, userName: userData?.name },
+      );
+
+      return populatedPayment;
+    } catch (err) {
+      // Rollback transaction if not already rolled back
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
+      throw err;
+    } finally {
+      await session.endSession();
     }
-
-    // returnId থাকলে return ride book করো
-    if (returnId) {
-      await returnService.bookReturnRide(returnId, userId);
-    }
-
-    const populatedPayment = await PaymentModel.findById(payment._id).populate(
-      "userId",
-      "name phoneNumber",
-    );
-
-    const userData = populatedPayment?.userId as any;
-    await notificationService.notifyAdmins(
-      `Payment submitted by ${userData?.name || "User"} — ${paymentFor}`,
-      "PAYMENT_SUBMITTED",
-      { paymentId: payment._id.toString() },
-      { transactionId, amount, paymentFor, userName: userData?.name },
-    );
-
-    return populatedPayment;
   }
 
   // Approve or reject payment
