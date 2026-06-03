@@ -362,6 +362,7 @@ export class RideService {
     ride.rideOtpVerified = true;
     ride.rideOtp = undefined as any;
     ride.rideOtpExpiry = undefined as any;
+    ride.status = RideStatus.COMPLETED;
     await ride.save();
 
     // signature: notifyUser(userId, message, type, refs?, metadata?)
