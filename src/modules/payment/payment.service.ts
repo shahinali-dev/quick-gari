@@ -59,9 +59,10 @@ export class PaymentService {
       paymentFor = PaymentFor.RETURN;
       amount = returnDoc.fare || 0;
     } else if (shareVehicleBookingPayload) {
-      const shareVehicle = await shareVehicleService.getShareVehicleById(
-        shareVehicleBookingPayload.shareVehicleId,
-      );
+      const shareVehicle =
+        await shareVehicleService.getShareVehicleByIdWithoutPassengers(
+          shareVehicleBookingPayload.shareVehicleId,
+        );
 
       if (!shareVehicle) {
         throw new AppError(httpStatus.NOT_FOUND, "Share vehicle not found");

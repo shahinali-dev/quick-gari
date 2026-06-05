@@ -124,6 +124,15 @@ export class ShareVehicleService {
     };
   }
 
+  async getShareVehicleByIdWithoutPassengers(id: string) {
+    const shareVehicle = await ShareVehicleModel.findById(id);
+    if (!shareVehicle) {
+      throw new AppError(httpStatus.NOT_FOUND, "Share vehicle not found");
+    }
+
+    return shareVehicle;
+  }
+
   async getShareVehiclesByUserId(userId: string) {
     const shareVehicles = await ShareVehicleModel.find({ carOwner: userId });
 
@@ -143,6 +152,11 @@ export class ShareVehicleService {
     return shareVehiclesWithPassengers;
   }
 
+  async getShareVehiclesByUserIdWithoutPassengers(userId: string) {
+    const shareVehicles = await ShareVehicleModel.find({ carOwner: userId });
+    return shareVehicles;
+  }
+
   async getAvailableShareVehicles(date?: Date) {
     const shareVehicles = await ShareVehicleModel.find({
       status: ShareVehicleStatus.SCHEDULED,
@@ -152,14 +166,16 @@ export class ShareVehicleService {
   }
 
   async cancelShareVehicle(shareVehicleId: string) {
-    const shareVehicle = await this.getShareVehicleById(shareVehicleId);
+    const shareVehicle =
+      await this.getShareVehicleByIdWithoutPassengers(shareVehicleId);
     shareVehicle.status = ShareVehicleStatus.CANCELLED;
     await shareVehicle.save();
     return shareVehicle;
   }
 
   async completeShareVehicle(shareVehicleId: string) {
-    const shareVehicle = await this.getShareVehicleById(shareVehicleId);
+    const shareVehicle =
+      await this.getShareVehicleByIdWithoutPassengers(shareVehicleId);
     shareVehicle.status = ShareVehicleStatus.COMPLETED;
     await shareVehicle.save();
     return shareVehicle;
@@ -187,18 +203,6 @@ export class ShareVehicleService {
     if (!booking) {
       throw new AppError(httpStatus.NOT_FOUND, "Booking not found");
     }
-    // if (booking.passenger.userId.toString() !== passengerId) {
-    //   throw new AppError(
-    //     httpStatus.FORBIDDEN,
-    //     "You are not authorized to verify this booking",
-    //   );
-    // }
-    // if (booking.shareVehicle.carOwner.toString() !== driverId) {
-    //   throw new AppError(
-    //     httpStatus.FORBIDDEN,
-    //     "You are not authorized to verify this booking",
-    //   );
-    // }
 
     if (booking.bookingOtpVerified) {
       throw new AppError(
@@ -218,13 +222,11 @@ export class ShareVehicleService {
         "OTP expiry not set for this booking",
       );
     }
+
     const now = new Date().getTime();
     const expiryTime = new Date(booking.bookingOtpExpiry).getTime();
 
-    // 10 min আগে (valid start)
     const validFrom = expiryTime - 10 * 60 * 1000;
-
-    // 30 min পরে (valid end)
     const validUntil = expiryTime + 30 * 60 * 1000;
 
     if (now < validFrom) {
@@ -253,13 +255,22 @@ export class ShareVehicleService {
     booking.bookingOtpExpiry = undefined;
     await booking.save();
 
-    // is any other passenger OTP pending for the same share vehicle? If not, mark share vehicle as ONGOING
-    const shareVehicle =
-      await shareVehicleService.getShareVehiclesByUserId(driverId);
-    const passengers = shareVehicle.passengers;
+    // is any other passenger OTP pending for the same share vehicle? If not, mark share vehicle as COMPLETED
+    const shareVehicle = await ShareVehicleModel.findById(shareVehicleId);
+    if (!shareVehicle) {
+      throw new AppError(httpStatus.NOT_FOUND, "Share vehicle not found");
+    }
+
+    const passengers =
+      await shareVehicleBookingService.getPassengersForShareVehicle(
+        shareVehicleId,
+        shareVehicle.carOwner.toString(),
+      );
+
     const pendingBookings = passengers.filter(
-      (passenger) => !passenger.bookingOtpVerified,
+      (passenger: any) => !passenger.bookingOtpVerified,
     );
+
     if (pendingBookings.length === 0) {
       shareVehicle.status = ShareVehicleStatus.COMPLETED;
       await shareVehicle.save();

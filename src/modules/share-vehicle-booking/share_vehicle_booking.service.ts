@@ -18,9 +18,10 @@ export class ShareVehicleBookingService {
     }
 
     // ২. Share vehicle exist করে কিনা check করো
-    const shareVehicle = await shareVehicleService.getShareVehicleById(
-      payload.shareVehicleId,
-    );
+    const shareVehicle =
+      await shareVehicleService.getShareVehicleByIdWithoutPassengers(
+        payload.shareVehicleId,
+      );
 
     // ३. Share vehicle তে pickup এবং drop stops exist করে কিনা check করো
     const stopLocations = shareVehicle.stops.map((stop) => stop.location);
@@ -85,6 +86,11 @@ export class ShareVehicleBookingService {
     const serviceCharge = totalFare * 0.1;
     const totalPriceWithFivePercentServiceCharge = totalFare + serviceCharge;
 
+    const journeyDate = new Date(shareVehicle.journeyDate);
+    const [hours, minutes] = pickupArrivalTime.split(":").map(Number);
+
+    const journeyStartedAt = new Date(journeyDate);
+    journeyStartedAt.setUTCHours(hours, minutes, 0, 0);
     // ९. Booking create করো
     const bookingPayload = {
       shareVehicle: new Types.ObjectId(payload.shareVehicleId),
@@ -101,7 +107,7 @@ export class ShareVehicleBookingService {
       totalFare,
       totalPrice: totalPriceWithFivePercentServiceCharge,
       status: BookingStatus.PENDING,
-      journeyStartedAt: pickupArrivalTime,
+      journeyStartedAt: journeyStartedAt,
     };
 
     const booking = await ShareVehicleBookingModel.create(bookingPayload);
@@ -138,7 +144,9 @@ export class ShareVehicleBookingService {
 
   async getBookingsByShareVehicleId(shareVehicleId: string, userId: string) {
     const shareVehicle =
-      await shareVehicleService.getShareVehicleById(shareVehicleId);
+      await shareVehicleService.getShareVehicleByIdWithoutPassengers(
+        shareVehicleId,
+      );
 
     if (shareVehicle.carOwner.toString() !== userId) {
       throw new AppError(
@@ -244,7 +252,9 @@ export class ShareVehicleBookingService {
     userId: string,
   ) {
     const shareVehicle =
-      await shareVehicleService.getShareVehicleById(shareVehicleId);
+      await shareVehicleService.getShareVehicleByIdWithoutPassengers(
+        shareVehicleId,
+      );
     if (shareVehicle.carOwner.toString() !== userId) {
       throw new AppError(
         httpStatus.FORBIDDEN,

@@ -72,7 +72,8 @@ router.get(
   "/:id",
   catchAsync(async (req, res) => {
     const { id } = req.params;
-    const shareVehicle = await shareVehicleService.getShareVehicleById(id);
+    const shareVehicle =
+      await shareVehicleService.getShareVehicleByIdWithoutPassengers(id);
 
     sendResponse(res, {
       success: true,
