@@ -4,7 +4,14 @@ const submitPaymentValidationSchema = z.object({
   rideId: z.string().optional(),
   proposalId: z.string().optional(),
   returnId: z.string().optional(),
-  shareVehicleBookingId: z.string().optional(),
+  shareVehicleBookingPayload: z
+    .object({
+      shareVehicleId: z.string(),
+      pickupStop: z.string(),
+      dropStop: z.string(),
+      seatsBooked: z.number(),
+    })
+    .optional(),
   transactionId: z.string().min(1, "Transaction ID is required"),
 });
 

@@ -7,7 +7,7 @@ import catchAsync from "../../utils/catch_async.utils";
 import sendResponse from "../../utils/send_response.utils";
 import ReturnModel from "../return/return.model";
 import RideModel from "../ride/ride.model";
-import ShareVehicleBookingModel from "../share-vehicle-booking/share_vehicle_booking.model";
+import { shareVehicleService } from "../share-vehicle/share_vehicle.service";
 import { PaymentFor } from "./payment.enum";
 import { paymentService } from "./payment.service";
 import { paymentValidation } from "./payment.validation";
@@ -20,7 +20,7 @@ router.post(
   isAuth,
   validateRequest(paymentValidation.submitPaymentValidationSchema),
   catchAsync(async (req, res) => {
-    const { rideId, returnId, shareVehicleBookingId } = req.body;
+    const { rideId, returnId, shareVehicleBookingPayload } = req.body;
     const userId = req.user!._id.toString();
 
     // Determine payment type and get amount from related document
@@ -52,20 +52,23 @@ router.post(
 
       paymentFor = PaymentFor.RETURN;
       amount = returnDoc.fare || 0;
-    } else if (shareVehicleBookingId) {
-      const booking = await ShareVehicleBookingModel.findById(
-        shareVehicleBookingId,
+    } else if (shareVehicleBookingPayload) {
+      const shareVehicle = await shareVehicleService.getShareVehicleById(
+        shareVehicleBookingPayload.shareVehicleId,
+        userId,
       );
-      if (!booking) {
+
+      console.log("shareVehicle in payment controller", shareVehicle);
+      if (!shareVehicle) {
         return sendResponse(res, {
           success: false,
           statusCode: httpStatus.NOT_FOUND,
-          message: "Booking not found",
+          message: "Share vehicle not found",
           data: null,
         });
       }
       paymentFor = PaymentFor.SHARE_VEHICLE;
-      amount = booking.totalPrice || 0;
+      amount = shareVehicle.totalPrice || 0;
     } else {
       return sendResponse(res, {
         success: false,

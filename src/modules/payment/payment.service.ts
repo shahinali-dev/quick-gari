@@ -13,6 +13,7 @@ import RideModel from "../ride/ride.model";
 import { rideService } from "../ride/ride.service";
 import { BookingStatus } from "../share-vehicle-booking/share_vehicle_booking.interface";
 import ShareVehicleBookingModel from "../share-vehicle-booking/share_vehicle_booking.model";
+import { shareVehicleBookingService } from "../share-vehicle-booking/share_vehicle_booking.service";
 import { PaymentFor, PaymentStatus } from "./payment.enum";
 import PaymentModel from "./payment.model";
 import { ISubmitPaymentPayload } from "./payment.validation";
@@ -28,19 +29,18 @@ export class PaymentService {
     const {
       rideId,
       returnId,
-      shareVehicleBookingId,
+      shareVehicleBookingPayload,
       transactionId,
       proposalId,
     } = data;
 
-    if (!rideId && !returnId && !shareVehicleBookingId) {
+    if (!rideId && !returnId && !shareVehicleBookingPayload) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
-        "One of rideId, returnId, or shareVehicleBookingId is required",
+        "One of rideId, returnId, or shareVehicleBookingPayload is required",
       );
     }
 
-    // rideId থাকলে proposalId mandatory
     if (rideId && !proposalId) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
@@ -54,12 +54,19 @@ export class PaymentService {
       throw new AppError(httpStatus.BAD_REQUEST, "Transaction ID already used");
     }
 
-    // Start MongoDB session for transaction
+    let shareVehicleBookingId: Types.ObjectId | undefined;
+    if (shareVehicleBookingPayload) {
+      const booking = await shareVehicleBookingService.createBooking(
+        userId,
+        shareVehicleBookingPayload,
+      );
+      shareVehicleBookingId = booking._id;
+    }
+
     const session = await startSession();
     session.startTransaction();
 
     try {
-      // Create payment record with session
       const paymentData = await PaymentModel.create(
         [
           {
@@ -69,9 +76,7 @@ export class PaymentService {
             paymentFor,
             rideId: rideId ? new Types.ObjectId(rideId) : undefined,
             returnId: returnId ? new Types.ObjectId(returnId) : undefined,
-            shareVehicleBookingId: shareVehicleBookingId
-              ? new Types.ObjectId(shareVehicleBookingId)
-              : undefined,
+            shareVehicleBookingId,
             userId: new Types.ObjectId(userId),
             status: PaymentStatus.PENDING,
             submittedAt: new Date(),
@@ -82,7 +87,6 @@ export class PaymentService {
 
       const payment = paymentData[0];
 
-      // rideId থাকলে proposal accept করো
       if (rideId && proposalId) {
         try {
           await rideService.acceptProposal(rideId, userId, proposalId);
@@ -92,7 +96,6 @@ export class PaymentService {
         }
       }
 
-      // returnId থাকলে return ride book করো
       if (returnId) {
         try {
           await returnService.bookReturnRide(returnId, userId);
@@ -102,7 +105,6 @@ export class PaymentService {
         }
       }
 
-      // Commit transaction
       await session.commitTransaction();
 
       const populatedPayment = await PaymentModel.findById(
@@ -119,7 +121,6 @@ export class PaymentService {
 
       return populatedPayment;
     } catch (err) {
-      // Rollback transaction if not already rolled back
       if (session.inTransaction()) {
         await session.abortTransaction();
       }
@@ -128,7 +129,6 @@ export class PaymentService {
       await session.endSession();
     }
   }
-
   // Approve or reject payment
   async approvePayment(
     paymentId: string,
