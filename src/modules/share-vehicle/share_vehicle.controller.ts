@@ -83,5 +83,29 @@ router.get(
   }),
 );
 
+router.post(
+  "/:shareVehicleId/verify-otp",
+  isAuth,
+  catchAsync(async (req, res) => {
+    const { shareVehicleId } = req.params;
+    const driverId = req.user!._id.toString();
+    const { passengerId, otp } = req.body;
+
+    const shareVehicle = await shareVehicleService.verifyOtp(
+      shareVehicleId,
+      driverId,
+      passengerId,
+      otp,
+    );
+
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "OTP verified successfully",
+      data: shareVehicle,
+    });
+  }),
+);
+
 const shareVehicleRouter = router;
 export default shareVehicleRouter;

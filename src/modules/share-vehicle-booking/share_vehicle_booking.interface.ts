@@ -30,6 +30,7 @@ export interface IShareVehicleBooking {
   bookingOtpExpiry?: Date;
   bookingOtpVerified?: boolean;
   serviceCharge?: number;
+  journeyStartedAt?: Date;
   cancelledAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;

@@ -60,6 +60,11 @@ export class ShareVehicleBookingService {
       );
     }
 
+    //pickup location arrival time
+    const pickupArrivalTime = shareVehicle.stops.find(
+      (stop) => stop.location === payload.pickupStop,
+    )!.arrivalTime;
+
     // ६. Available seats check করো
     if (shareVehicle.availableSeats < payload.seatsBooked) {
       throw new AppError(
@@ -76,7 +81,8 @@ export class ShareVehicleBookingService {
 
     // ८. Total fare calculate করো
     const totalFare = perSeatFare * payload.seatsBooked;
-    const serviceCharge = totalFare * 0.05;
+    //10 % service charge add করো
+    const serviceCharge = totalFare * 0.1;
     const totalPriceWithFivePercentServiceCharge = totalFare + serviceCharge;
 
     // ९. Booking create করো
@@ -95,6 +101,7 @@ export class ShareVehicleBookingService {
       totalFare,
       totalPrice: totalPriceWithFivePercentServiceCharge,
       status: BookingStatus.PENDING,
+      journeyStartedAt: pickupArrivalTime,
     };
 
     const booking = await ShareVehicleBookingModel.create(bookingPayload);
@@ -144,6 +151,15 @@ export class ShareVehicleBookingService {
     }).sort({ createdAt: -1 });
 
     return bookings;
+  }
+
+  async getUserBookingForShareVehicle(shareVehicleId: string, userId: string) {
+    const booking = await ShareVehicleBookingModel.findOne({
+      shareVehicle: shareVehicleId,
+      "passenger.userId": userId,
+    }).select("+bookingOtp +bookingOtpExpiry +bookingOtpVerified");
+
+    return booking;
   }
 
   async getPassengersForShareVehicle(shareVehicleId: string, userId: string) {

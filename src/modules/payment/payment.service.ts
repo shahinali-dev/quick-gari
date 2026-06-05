@@ -61,7 +61,6 @@ export class PaymentService {
     } else if (shareVehicleBookingPayload) {
       const shareVehicle = await shareVehicleService.getShareVehicleById(
         shareVehicleBookingPayload.shareVehicleId,
-        userId,
       );
 
       if (!shareVehicle) {
@@ -247,9 +246,7 @@ export class PaymentService {
         otpExpiryDate = new Date(serviceDoc.startTime);
       } else {
         // ShareVehicleBooking: journeyDate from related ShareVehicle
-        otpExpiryDate = new Date(
-          serviceDoc.shareVehicle?.journeyDate || new Date(),
-        );
+        otpExpiryDate = new Date(serviceDoc.journeyStartedAt || new Date());
       }
 
       serviceDoc[config.otpField] = hashedOtp;
@@ -314,7 +311,6 @@ export class PaymentService {
         serviceDoc.serviceCharge =
           Math.round((serviceDoc.totalFare ?? 0) * 0.1 * 100) / 100;
         serviceDoc.payment = PaymentStatus.APPROVED;
-        serviceDoc.status = BookingStatus.CONFIRMED; // adjust if enum differs
 
         await generateAndSendOtp({
           otpField: "bookingOtp",

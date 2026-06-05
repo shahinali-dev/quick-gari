@@ -93,6 +93,7 @@ const shareVehicleBookingSchema = new Schema<IShareVehicleBooking>(
     bookingOtpExpiry: { type: Date, select: false },
     bookingOtpVerified: { type: Boolean, default: false },
     serviceCharge: { type: Number },
+    journeyStartedAt: { type: Date },
   },
   {
     timestamps: true,

@@ -2,9 +2,10 @@
 import httpStatus from "http-status";
 import { AppError } from "../../errors/app_error";
 import { combineDateAndTime } from "../../utils/normalize";
+import { OTPUtils } from "../../utils/otp_utils";
 import { carService } from "../car/car.service";
 import { shareVehicleBookingService } from "../share-vehicle-booking/share_vehicle_booking.service";
-import { ShareVehicleStatus } from "./share_vehicle.interface";
+import { BookingStatus, ShareVehicleStatus } from "./share_vehicle.interface";
 import ShareVehicleModel from "./share_vehicle.model";
 import { ICreateShareVehicle } from "./share_vehicle.validation";
 
@@ -170,6 +171,101 @@ export class ShareVehicleService {
       status: ShareVehicleStatus.ONGOING,
     });
     return shareVehicles;
+  }
+  async verifyOtp(
+    shareVehicleId: string,
+    driverId: string,
+    passengerId: string,
+    inputOtp: string,
+  ) {
+    const booking =
+      await shareVehicleBookingService.getUserBookingForShareVehicle(
+        shareVehicleId,
+        passengerId,
+      );
+
+    if (!booking) {
+      throw new AppError(httpStatus.NOT_FOUND, "Booking not found");
+    }
+    // if (booking.passenger.userId.toString() !== passengerId) {
+    //   throw new AppError(
+    //     httpStatus.FORBIDDEN,
+    //     "You are not authorized to verify this booking",
+    //   );
+    // }
+    // if (booking.shareVehicle.carOwner.toString() !== driverId) {
+    //   throw new AppError(
+    //     httpStatus.FORBIDDEN,
+    //     "You are not authorized to verify this booking",
+    //   );
+    // }
+
+    if (booking.bookingOtpVerified) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "OTP already verified for this booking",
+      );
+    }
+    if (!booking.bookingOtp) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "OTP not generated for this booking",
+      );
+    }
+    if (!booking.bookingOtpExpiry) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "OTP expiry not set for this booking",
+      );
+    }
+    const now = new Date().getTime();
+    const expiryTime = new Date(booking.bookingOtpExpiry).getTime();
+
+    // 10 min আগে (valid start)
+    const validFrom = expiryTime - 10 * 60 * 1000;
+
+    // 30 min পরে (valid end)
+    const validUntil = expiryTime + 30 * 60 * 1000;
+
+    if (now < validFrom) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Ride has not started yet. OTP will be valid 10 minutes before start time",
+      );
+    }
+
+    if (now > validUntil) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "OTP has expired. Please request a new one",
+      );
+    }
+
+    const isValid = OTPUtils.verifyOTPSafely(booking.bookingOtp, inputOtp);
+
+    if (!isValid) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Invalid OTP");
+    }
+
+    booking.bookingOtpVerified = true;
+    booking.status = BookingStatus.CONFIRMED;
+    booking.bookingOtp = undefined;
+    booking.bookingOtpExpiry = undefined;
+    await booking.save();
+
+    // is any other passenger OTP pending for the same share vehicle? If not, mark share vehicle as ONGOING
+    const shareVehicle =
+      await shareVehicleService.getShareVehiclesByUserId(driverId);
+    const passengers = shareVehicle.passengers;
+    const pendingBookings = passengers.filter(
+      (passenger) => !passenger.bookingOtpVerified,
+    );
+    if (pendingBookings.length === 0) {
+      shareVehicle.status = ShareVehicleStatus.COMPLETED;
+      await shareVehicle.save();
+    }
+
+    return booking;
   }
 }
 
