@@ -33,7 +33,7 @@ export class PaymentService {
 
     // ── Step 1: Resolve paymentFor & amount ──────────────────────────────
     let paymentFor: PaymentFor;
-    let amount: number;
+    let amount: number = 0;
 
     if (rideId) {
       if (!proposalId) {
