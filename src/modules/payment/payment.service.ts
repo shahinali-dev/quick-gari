@@ -14,18 +14,15 @@ import { rideService } from "../ride/ride.service";
 import { BookingStatus } from "../share-vehicle-booking/share_vehicle_booking.interface";
 import ShareVehicleBookingModel from "../share-vehicle-booking/share_vehicle_booking.model";
 import { shareVehicleBookingService } from "../share-vehicle-booking/share_vehicle_booking.service";
+import { shareVehicleService } from "../share-vehicle/share_vehicle.service";
 import { PaymentFor, PaymentStatus } from "./payment.enum";
 import PaymentModel from "./payment.model";
 import { ISubmitPaymentPayload } from "./payment.validation";
 
 export class PaymentService {
   // Submit payment for any service (Ride, Return, Share Vehicle Booking)
-  async submitPayment(
-    userId: string,
-    data: ISubmitPaymentPayload,
-    paymentFor: PaymentFor,
-    amount: number,
-  ) {
+  // SERVICE
+  async submitPayment(userId: string, data: ISubmitPaymentPayload) {
     const {
       rideId,
       returnId,
@@ -34,26 +31,58 @@ export class PaymentService {
       proposalId,
     } = data;
 
-    if (!rideId && !returnId && !shareVehicleBookingPayload) {
+    // ── Step 1: Resolve paymentFor & amount ──────────────────────────────
+    let paymentFor: PaymentFor;
+    let amount: number;
+
+    if (rideId) {
+      if (!proposalId) {
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          "proposalId is required when rideId is provided",
+        );
+      }
+
+      const ride = await RideModel.findById(rideId);
+      if (!ride) {
+        throw new AppError(httpStatus.NOT_FOUND, "Ride not found");
+      }
+
+      paymentFor = PaymentFor.RIDE;
+      amount = ride.fare || 0;
+    } else if (returnId) {
+      const returnDoc = await ReturnModel.findById(returnId);
+      if (!returnDoc) {
+        throw new AppError(httpStatus.NOT_FOUND, "Return not found");
+      }
+
+      paymentFor = PaymentFor.RETURN;
+      amount = returnDoc.fare || 0;
+    } else if (shareVehicleBookingPayload) {
+      const shareVehicle = await shareVehicleService.getShareVehicleById(
+        shareVehicleBookingPayload.shareVehicleId,
+        userId,
+      );
+
+      if (!shareVehicle) {
+        throw new AppError(httpStatus.NOT_FOUND, "Share vehicle not found");
+      }
+
+      paymentFor = PaymentFor.SHARE_VEHICLE;
+    } else {
       throw new AppError(
         httpStatus.BAD_REQUEST,
         "One of rideId, returnId, or shareVehicleBookingPayload is required",
       );
     }
 
-    if (rideId && !proposalId) {
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        "proposalId is required when rideId is provided",
-      );
-    }
-
-    // Check if transaction ID already exists
+    // ── Step 2: Check duplicate transaction ─────────────────────────────
     const existingPayment = await PaymentModel.findOne({ transactionId });
     if (existingPayment) {
       throw new AppError(httpStatus.BAD_REQUEST, "Transaction ID already used");
     }
 
+    // ── Step 3: Create share vehicle booking if needed ──────────────────
     let shareVehicleBookingId: Types.ObjectId | undefined;
     if (shareVehicleBookingPayload) {
       const booking = await shareVehicleBookingService.createBooking(
@@ -61,8 +90,10 @@ export class PaymentService {
         shareVehicleBookingPayload,
       );
       shareVehicleBookingId = booking._id;
+      amount = booking.totalPrice || 0;
     }
 
+    // ── Step 4: Transaction ──────────────────────────────────────────────
     const session = await startSession();
     session.startTransaction();
 
@@ -107,11 +138,13 @@ export class PaymentService {
 
       await session.commitTransaction();
 
+      // ── Step 5: Notify admins ──────────────────────────────────────────
       const populatedPayment = await PaymentModel.findById(
         payment._id,
       ).populate("userId", "name phoneNumber");
 
       const userData = populatedPayment?.userId as any;
+
       await notificationService.notifyAdmins(
         `Payment submitted by ${userData?.name || "User"} — ${paymentFor}`,
         "PAYMENT_SUBMITTED",

@@ -5,9 +5,6 @@ import { isAuth } from "../../middleware/is_auth";
 import validateRequest from "../../middleware/validate_request.middleware";
 import catchAsync from "../../utils/catch_async.utils";
 import sendResponse from "../../utils/send_response.utils";
-import ReturnModel from "../return/return.model";
-import RideModel from "../ride/ride.model";
-import { shareVehicleService } from "../share-vehicle/share_vehicle.service";
 import { PaymentFor } from "./payment.enum";
 import { paymentService } from "./payment.service";
 import { paymentValidation } from "./payment.validation";
@@ -20,87 +17,18 @@ router.post(
   isAuth,
   validateRequest(paymentValidation.submitPaymentValidationSchema),
   catchAsync(async (req, res) => {
-    const { rideId, returnId, shareVehicleBookingPayload } = req.body;
     const userId = req.user!._id.toString();
 
-    // Determine payment type and get amount from related document
-    let paymentFor: PaymentFor;
-    let amount: number;
-
-    if (rideId) {
-      const ride = await RideModel.findById(rideId);
-      if (!ride) {
-        return sendResponse(res, {
-          success: false,
-          statusCode: httpStatus.NOT_FOUND,
-          message: "Ride not found",
-          data: null,
-        });
-      }
-      paymentFor = PaymentFor.RIDE;
-      amount = ride.fare || 0;
-    } else if (returnId) {
-      const returnDoc = await ReturnModel.findById(returnId);
-      if (!returnDoc) {
-        return sendResponse(res, {
-          success: false,
-          statusCode: httpStatus.NOT_FOUND,
-          message: "Return not found",
-          data: null,
-        });
-      }
-
-      paymentFor = PaymentFor.RETURN;
-      amount = returnDoc.fare || 0;
-    } else if (shareVehicleBookingPayload) {
-      const shareVehicle = await shareVehicleService.getShareVehicleById(
-        shareVehicleBookingPayload.shareVehicleId,
-        userId,
-      );
-
-      console.log("shareVehicle in payment controller", shareVehicle);
-      if (!shareVehicle) {
-        return sendResponse(res, {
-          success: false,
-          statusCode: httpStatus.NOT_FOUND,
-          message: "Share vehicle not found",
-          data: null,
-        });
-      }
-      paymentFor = PaymentFor.SHARE_VEHICLE;
-      amount = shareVehicle.totalPrice || 0;
-    } else {
-      return sendResponse(res, {
-        success: false,
-        statusCode: httpStatus.BAD_REQUEST,
-        message:
-          "One of rideId, returnId, or shareVehicleBookingId is required",
-        data: null,
-      });
-    }
-
-    const payment = await paymentService.submitPayment(
-      userId,
-      req.body,
-      paymentFor,
-      amount,
-    );
+    const payment = await paymentService.submitPayment(userId, req.body);
 
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.OK,
       message: "Payment submitted successfully",
-      data: {
-        payment,
-        paymentDetails: {
-          amount,
-          paymentFor,
-        },
-      },
+      data: { payment },
     });
   }),
 );
-
 // Admin: Approve/Reject payment
 router.post(
   "/approve/:paymentId",
