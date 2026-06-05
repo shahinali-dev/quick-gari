@@ -45,7 +45,22 @@ export class ShareVehicleBookingService {
       );
     }
 
-    // ५. Available seats check করো
+    // ५. Stop order check করো
+    const pickupOrder = shareVehicle.stops.find(
+      (stop) => stop.location === payload.pickupStop,
+    )!.order;
+    const dropOrder = shareVehicle.stops.find(
+      (stop) => stop.location === payload.dropStop,
+    )!.order;
+
+    if (pickupOrder >= dropOrder) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        `Invalid route: "${payload.pickupStop}" comes after "${payload.dropStop}" in this vehicle's route`,
+      );
+    }
+
+    // ६. Available seats check করো
     if (shareVehicle.availableSeats < payload.seatsBooked) {
       throw new AppError(
         httpStatus.CONFLICT,
@@ -53,16 +68,18 @@ export class ShareVehicleBookingService {
       );
     }
 
-    // ६. Fare configuration exist করে কিনা check করো
+    // ७. Fare configuration exist করে কিনা check করো
     const perSeatFare = await shareVehicleFareConfigService.getFare(
       payload.pickupStop,
       payload.dropStop,
     );
 
-    // ७. Total fare calculate করো
+    // ८. Total fare calculate করো
     const totalFare = perSeatFare * payload.seatsBooked;
+    const serviceCharge = totalFare * 0.05;
+    const totalPriceWithFivePercentServiceCharge = totalFare + serviceCharge;
 
-    // ८. Booking create করো
+    // ९. Booking create করো
     const bookingPayload = {
       shareVehicle: new Types.ObjectId(payload.shareVehicleId),
       passenger: {
@@ -76,14 +93,16 @@ export class ShareVehicleBookingService {
       seatsBooked: payload.seatsBooked,
       perSeatFare,
       totalFare,
+      totalPrice: totalPriceWithFivePercentServiceCharge,
       status: BookingStatus.PENDING,
     };
 
     const booking = await ShareVehicleBookingModel.create(bookingPayload);
 
-    // ९. Update available seats in share vehicle
-    shareVehicle.availableSeats -= payload.seatsBooked;
-    await shareVehicle.save();
+    // १०. Update available seats in share vehicle
+    await ShareVehicleModel.findByIdAndUpdate(payload.shareVehicleId, {
+      $inc: { availableSeats: -payload.seatsBooked },
+    });
 
     return booking;
   }
@@ -123,6 +142,30 @@ export class ShareVehicleBookingService {
     const bookings = await ShareVehicleBookingModel.find({
       shareVehicle: shareVehicleId,
     }).sort({ createdAt: -1 });
+
+    return bookings;
+  }
+
+  async getPassengersForShareVehicle(shareVehicleId: string, userId: string) {
+    const shareVehicle = await ShareVehicleModel.findById(shareVehicleId);
+
+    if (!shareVehicle) {
+      throw new AppError(httpStatus.NOT_FOUND, "Share vehicle not found");
+    }
+
+    if (shareVehicle.carOwner.toString() !== userId) {
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        "You are not authorized to access this resource",
+      );
+    }
+
+    const bookings = await ShareVehicleBookingModel.find({
+      shareVehicle: shareVehicleId,
+      status: BookingStatus.CONFIRMED,
+    }).select(
+      "passenger pickupStop dropStop seatsBooked totalFare totalPrice payment status bookingOtpVerified",
+    );
 
     return bookings;
   }

@@ -3,6 +3,7 @@ import httpStatus from "http-status";
 import { AppError } from "../../errors/app_error";
 import { combineDateAndTime } from "../../utils/normalize";
 import { carService } from "../car/car.service";
+import { shareVehicleBookingService } from "../share-vehicle-booking/share_vehicle_booking.service";
 import { ShareVehicleStatus } from "./share_vehicle.interface";
 import ShareVehicleModel from "./share_vehicle.model";
 import { ICreateShareVehicle } from "./share_vehicle.validation";
@@ -109,12 +110,36 @@ export class ShareVehicleService {
     if (!shareVehicle) {
       throw new AppError(httpStatus.NOT_FOUND, "Share vehicle not found");
     }
-    return shareVehicle;
+
+    const passengers =
+      await shareVehicleBookingService.getPassengersForShareVehicle(
+        id,
+        shareVehicle.carOwner.toString(),
+      );
+
+    return {
+      ...shareVehicle.toObject(),
+      passengers,
+    };
   }
 
   async getShareVehiclesByUserId(userId: string) {
     const shareVehicles = await ShareVehicleModel.find({ carOwner: userId });
-    return shareVehicles;
+
+    const shareVehiclesWithPassengers = await Promise.all(
+      shareVehicles.map(async (vehicle) => {
+        const passengers =
+          await shareVehicleBookingService.getPassengersForShareVehicle(
+            vehicle._id!.toString(),
+            userId,
+          );
+        return {
+          ...vehicle.toObject(),
+          passengers,
+        };
+      }),
+    );
+    return shareVehiclesWithPassengers;
   }
 
   async getAvailableShareVehicles(date?: Date) {
