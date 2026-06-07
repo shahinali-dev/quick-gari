@@ -12,12 +12,13 @@ router.get(
   isAuth,
   isAdmin,
   catchAsync(async (req, res) => {
-    const fares = await shareVehicleFareConfigService.getAllFares();
+    const fares = await shareVehicleFareConfigService.getAllFares(req.query);
     sendResponse(res, {
       success: true,
       statusCode: 200,
       message: "Fare configurations retrieved successfully",
-      data: fares,
+      data: fares.data,
+      meta: fares.meta,
     });
   }),
 );

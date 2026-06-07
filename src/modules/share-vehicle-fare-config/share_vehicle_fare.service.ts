@@ -1,5 +1,6 @@
 import httpStatus from "http-status";
 import { AppError } from "../../errors/app_error";
+import QueryBuilder from "../../utils/query_builder.utils";
 import ShareVehicleFareConfigModel from "./share_vehicle_fare.model";
 
 export class ShareVehicleFareConfigService {
@@ -32,10 +33,25 @@ export class ShareVehicleFareConfigService {
     return fare.perSeatFare;
   }
 
-  async getAllFares() {
-    return ShareVehicleFareConfigModel.find({ isActive: true }).sort({
-      fromLocation: 1,
-    });
+  async getAllFares(query: Record<string, unknown>) {
+    const searchableFields = ["fromLocation", "toLocation"];
+
+    const queryBuilder = new QueryBuilder(
+      ShareVehicleFareConfigModel.find({ isActive: true }),
+      query,
+    )
+      .search(searchableFields)
+      .filter()
+      .sort()
+      .paginate();
+
+    const result = await queryBuilder.modelQuery;
+    const meta = await queryBuilder.countTotal();
+
+    return {
+      data: result,
+      meta,
+    };
   }
 
   async getLocationsList() {

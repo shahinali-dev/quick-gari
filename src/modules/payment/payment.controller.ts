@@ -64,13 +64,14 @@ router.get(
   isAuth,
   isAdmin,
   catchAsync(async (req, res) => {
-    const payments = await paymentService.getPendingPayments();
+    const payments = await paymentService.getPendingPayments(req.query);
 
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.OK,
       message: "Pending payments fetched successfully",
-      data: payments,
+      data: payments.data,
+      meta: payments.meta,
     });
   }),
 );

@@ -3,6 +3,7 @@ import httpStatus from "http-status";
 import { Types, startSession } from "mongoose";
 import { AppError } from "../../errors/app_error";
 import { OTPUtils } from "../../utils/otp_utils";
+import QueryBuilder from "../../utils/query_builder.utils";
 import { EmailService } from "../email/email.service";
 import { notificationService } from "../notification/notification.service";
 import { ReturnStatus } from "../return/return.enum";
@@ -380,17 +381,29 @@ export class PaymentService {
   }
 
   // Get all pending payments (for admin)
-  async getPendingPayments() {
-    const payments = await PaymentModel.find({
-      status: PaymentStatus.PENDING,
-    })
-      .populate("userId", "name phoneNumber")
-      .populate("rideId")
-      .populate("returnId")
-      .populate("shareVehicleBookingId")
-      .sort({ submittedAt: -1 });
+  async getPendingPayments(query: Record<string, unknown>) {
+    const searchableFields = ["userId.name", "userId.phoneNumber"];
 
-    return payments;
+    const queryBuilder = new QueryBuilder(
+      PaymentModel.find({ status: PaymentStatus.PENDING })
+        .populate("userId", "name phoneNumber")
+        .populate("rideId")
+        .populate("returnId")
+        .populate("shareVehicleBookingId"),
+      query,
+    )
+      .search(searchableFields)
+      .filter()
+      .sort()
+      .paginate();
+
+    const result = await queryBuilder.modelQuery;
+    const meta = await queryBuilder.countTotal();
+
+    return {
+      data: result,
+      meta,
+    };
   }
 
   // Get pending payments by type
