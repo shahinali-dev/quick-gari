@@ -186,7 +186,7 @@ export class ShareVehicleBookingService {
 
     const bookings = await ShareVehicleBookingModel.find({
       shareVehicle: shareVehicleId,
-      status: BookingStatus.CONFIRMED,
+      // status: BookingStatus.CONFIRMED,
     }).select(
       "passenger pickupStop dropStop seatsBooked totalFare totalPrice payment status bookingOtpVerified",
     );
