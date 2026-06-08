@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import httpStatus from "http-status";
 import { AppError } from "../../errors/app_error";
 import { combineDateAndTime } from "../../utils/normalize";
@@ -8,6 +9,8 @@ import { shareVehicleBookingService } from "../share-vehicle-booking/share_vehic
 import { BookingStatus, ShareVehicleStatus } from "./share_vehicle.interface";
 import ShareVehicleModel from "./share_vehicle.model";
 import { ICreateShareVehicle } from "./share_vehicle.validation";
+
+const TIMEZONE = "Asia/Dhaka"; // UTC+6
 
 export class ShareVehicleService {
   async isExistingShareVehicle(
@@ -53,21 +56,72 @@ export class ShareVehicleService {
       );
     }
 
-    // ২. stops order অনুযায়ী sort
+    // ২. arrivalTime format validate → "HH:MM" বা "H:MM"
+    const timeRegex = /^\d{1,2}:\d{2}$/;
+    for (const stop of payload.stops) {
+      if (!timeRegex.test(stop.arrivalTime)) {
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          `Invalid arrivalTime format "${stop.arrivalTime}" at order ${stop.order}. Use HH:MM (e.g. 14:30)`,
+        );
+      }
+    }
+
+    // ৩. stops order অনুযায়ী sort
     const sortedStops = [...payload.stops].sort((a, b) => a.order - b.order);
 
-    // ৩. নতুন ride এর start এবং end time বানাও
-    const incomingStart = combineDateAndTime(
-      new Date(payload.journeyDate),
-      sortedStops[0].arrivalTime,
-    );
+    // ৪. helper: Dhaka time "H:MM" + journeyDate → UTC Date
+    const buildUtcDateTime = (timeStr: string): Date => {
+      const [hoursStr, minutesStr] = timeStr.split(":");
+      const hours = parseInt(hoursStr, 10);
+      const minutes = parseInt(minutesStr, 10);
 
-    const incomingEnd = combineDateAndTime(
-      new Date(payload.journeyDate),
+      const localDateTimeStr = `${payload.journeyDate}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`;
+      return fromZonedTime(localDateTimeStr, TIMEZONE);
+    };
+
+    // ৫. journeyDate টা past date কিনা check (Dhaka timezone এ today এর সাথে compare)
+    const nowInDhaka = toZonedTime(new Date(), TIMEZONE);
+    const todayStrInDhaka = `${nowInDhaka.getFullYear()}-${String(nowInDhaka.getMonth() + 1).padStart(2, "0")}-${String(nowInDhaka.getDate()).padStart(2, "0")}`;
+
+    if (payload.journeyDate < todayStrInDhaka) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        `Journey date "${payload.journeyDate}" is in the past. Please select today or a future date.`,
+      );
+    }
+
+    // ৬. incomingStart এবং incomingEnd বানাও
+    const incomingStart = buildUtcDateTime(sortedStops[0].arrivalTime);
+    const incomingEnd = buildUtcDateTime(
       sortedStops[sortedStops.length - 1].arrivalTime,
     );
 
-    // ৪. time range conflict check
+    // ৭. journeyDate আজকে হলে → first stop এর time current time এর পরে হতে হবে
+    if (payload.journeyDate === todayStrInDhaka) {
+      const nowUtc = new Date();
+      if (incomingStart <= nowUtc) {
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          `Today's journey start time "${sortedStops[0].arrivalTime}" has already passed. Please set a future time.`,
+        );
+      }
+    }
+
+    // ৮. stop গুলোর time chronological order এ আছে কিনা check
+    for (let i = 1; i < sortedStops.length; i++) {
+      const prevTime = buildUtcDateTime(sortedStops[i - 1].arrivalTime);
+      const currTime = buildUtcDateTime(sortedStops[i].arrivalTime);
+
+      if (currTime <= prevTime) {
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          `Stop order ${sortedStops[i].order} arrivalTime "${sortedStops[i].arrivalTime}" must be after order ${sortedStops[i - 1].order} arrivalTime "${sortedStops[i - 1].arrivalTime}"`,
+        );
+      }
+    }
+
+    // ৯. time range conflict check
     const conflict = await this.isExistingShareVehicle(
       userId,
       incomingStart,
@@ -80,7 +134,7 @@ export class ShareVehicleService {
       );
     }
 
-    // ৫. car owner কিনা verify করো
+    // ১০. car owner কিনা verify করো
     const car = await carService.getCarsByUserId(userId);
     if (!car) {
       throw new AppError(httpStatus.FORBIDDEN, "You are not a car owner");
@@ -93,19 +147,25 @@ export class ShareVehicleService {
       driverName: (car.user as any).name || "Driver",
     };
 
-    // ৬. create
+    // ১১. stops এ UTC datetime সহ save করো
+    const stopsWithUtcTime = sortedStops.map((stop) => ({
+      ...stop,
+      arrivalTimeUtc: buildUtcDateTime(stop.arrivalTime),
+    }));
+
+    // ১২. create
     const result = await ShareVehicleModel.create({
       ...payload,
       vehicle: vehicleInfo,
+      journeyDate: incomingStart,
       carOwner: userId,
-      stops: sortedStops,
+      stops: stopsWithUtcTime,
       availableSeats: vehicleInfo.seatCapacity,
       status: ShareVehicleStatus.SCHEDULED,
     });
 
     return result;
   }
-
   async getShareVehicleById(id: string) {
     const shareVehicle = await ShareVehicleModel.findById(id);
     if (!shareVehicle) {
@@ -200,6 +260,8 @@ export class ShareVehicleService {
         passengerId,
       );
 
+    console.log("booking", booking);
+
     if (!booking) {
       throw new AppError(httpStatus.NOT_FOUND, "Booking not found");
     }
@@ -257,6 +319,8 @@ export class ShareVehicleService {
 
     // is any other passenger OTP pending for the same share vehicle? If not, mark share vehicle as COMPLETED
     const shareVehicle = await ShareVehicleModel.findById(shareVehicleId);
+
+    console.log("shareVehicle from db", shareVehicle);
     if (!shareVehicle) {
       throw new AppError(httpStatus.NOT_FOUND, "Share vehicle not found");
     }

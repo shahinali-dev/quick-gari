@@ -1,3 +1,4 @@
+import { fromZonedTime } from "date-fns-tz";
 import httpStatus from "http-status";
 import { Types } from "mongoose";
 import { AppError } from "../../errors/app_error";
@@ -8,6 +9,7 @@ import UserModel from "../user/user.model";
 import { BookingStatus } from "./share_vehicle_booking.interface";
 import ShareVehicleBookingModel from "./share_vehicle_booking.model";
 import { ICreateShareVehicleBooking } from "./share_vehicle_booking.validation";
+const TIMEZONE = "Asia/Dhaka";
 
 export class ShareVehicleBookingService {
   async createBooking(userId: string, payload: ICreateShareVehicleBooking) {
@@ -23,7 +25,7 @@ export class ShareVehicleBookingService {
         payload.shareVehicleId,
       );
 
-    // ३. Share vehicle তে pickup এবং drop stops exist করে কিনা check করো
+    // ৩. Share vehicle তে pickup এবং drop stops exist করে কিনা check করো
     const stopLocations = shareVehicle.stops.map((stop) => stop.location);
     if (!stopLocations.includes(payload.pickupStop)) {
       throw new AppError(
@@ -38,7 +40,7 @@ export class ShareVehicleBookingService {
       );
     }
 
-    // ४. Pickup এবং drop stop same কিনা check করো
+    // ৪. Pickup এবং drop stop same কিনা check করো
     if (payload.pickupStop === payload.dropStop) {
       throw new AppError(
         httpStatus.BAD_REQUEST,
@@ -46,7 +48,7 @@ export class ShareVehicleBookingService {
       );
     }
 
-    // ५. Stop order check করো
+    // ৫. Stop order check করো
     const pickupOrder = shareVehicle.stops.find(
       (stop) => stop.location === payload.pickupStop,
     )!.order;
@@ -61,12 +63,12 @@ export class ShareVehicleBookingService {
       );
     }
 
-    //pickup location arrival time
+    // pickup location arrival time
     const pickupArrivalTime = shareVehicle.stops.find(
       (stop) => stop.location === payload.pickupStop,
     )!.arrivalTime;
 
-    // ६. Available seats check করো
+    // ৬. Available seats check করো
     if (shareVehicle.availableSeats < payload.seatsBooked) {
       throw new AppError(
         httpStatus.CONFLICT,
@@ -74,24 +76,27 @@ export class ShareVehicleBookingService {
       );
     }
 
-    // ७. Fare configuration exist করে কিনা check করো
+    // ৭. Fare configuration exist করে কিনা check করো
     const perSeatFare = await shareVehicleFareConfigService.getFare(
       payload.pickupStop,
       payload.dropStop,
     );
 
-    // ८. Total fare calculate করো
+    // ৮. Total fare calculate করো
     const totalFare = perSeatFare * payload.seatsBooked;
-    //10 % service charge add করো
     const serviceCharge = totalFare * 0.1;
     const totalPriceWithFivePercentServiceCharge = totalFare + serviceCharge;
 
-    const journeyDate = new Date(shareVehicle.journeyDate);
+    // ৯. journeyStartedAt Dhaka timezone অনুযায়ী সঠিক UTC তে convert করো
+    const journeyDateStr = shareVehicle.journeyDate.toISOString().split("T")[0]; // "2026-06-08"
+
     const [hours, minutes] = pickupArrivalTime.split(":").map(Number);
 
-    const journeyStartedAt = new Date(journeyDate);
-    journeyStartedAt.setUTCHours(hours, minutes, 0, 0);
-    // ९. Booking create করো
+    const localDateTimeStr = `${journeyDateStr}T${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:00`;
+    const journeyStartedAt = fromZonedTime(localDateTimeStr, TIMEZONE);
+    // "15:25 Dhaka" → "09:25 UTC" ✓
+
+    // ১০. Booking create করো
     const bookingPayload = {
       shareVehicle: new Types.ObjectId(payload.shareVehicleId),
       passenger: {
@@ -107,12 +112,12 @@ export class ShareVehicleBookingService {
       totalFare,
       totalPrice: totalPriceWithFivePercentServiceCharge,
       status: BookingStatus.PENDING,
-      journeyStartedAt: journeyStartedAt,
+      journeyStartedAt,
     };
 
     const booking = await ShareVehicleBookingModel.create(bookingPayload);
 
-    // १०. Update available seats in share vehicle
+    // ১১. Update available seats in share vehicle
     await ShareVehicleModel.findByIdAndUpdate(payload.shareVehicleId, {
       $inc: { availableSeats: -payload.seatsBooked },
     });

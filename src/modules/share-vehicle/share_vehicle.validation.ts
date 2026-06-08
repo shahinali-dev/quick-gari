@@ -1,13 +1,18 @@
+import { toZonedTime } from "date-fns-tz";
 import { z } from "zod";
+
+const TIMEZONE = "Asia/Dhaka";
 
 const shareVehicleValidationSchema = z.object({
   journeyDate: z
     .string()
     .min(1, "Journey date is required")
     .refine((date) => {
-      const journeyDate = new Date(date);
-      const today = new Date();
-      return journeyDate >= today;
+      // দুটোকেই Dhaka timezone এ শুধু date string হিসেবে compare করো
+      const nowInDhaka = toZonedTime(new Date(), TIMEZONE);
+      const todayStr = `${nowInDhaka.getFullYear()}-${String(nowInDhaka.getMonth() + 1).padStart(2, "0")}-${String(nowInDhaka.getDate()).padStart(2, "0")}`;
+
+      return date >= todayStr; // string compare → "2026-06-08" >= "2026-06-08" ✓
     }, "Journey date cannot be in the past"),
   stops: z
     .array(
