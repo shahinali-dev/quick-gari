@@ -55,8 +55,9 @@ router.get(
   "/available",
   catchAsync(async (req, res) => {
     const { date } = req.query;
+    const today = new Date();
     const shareVehicles = await shareVehicleService.getAvailableShareVehicles(
-      date ? new Date(date as string) : undefined,
+      date ? new Date(date as string) : today,
     );
 
     sendResponse(res, {
