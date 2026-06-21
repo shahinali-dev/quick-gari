@@ -29,6 +29,10 @@ const returnSchema = new Schema<IReturn>(
     returnOtpExpiry: { type: Date, select: false },
     returnOtpVerified: { type: Boolean, default: false },
     serviceCharge: { type: Number },
+    driverPayoutCompleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

@@ -33,6 +33,7 @@ export interface IRide {
   rideOtpExpiry?: Date;
   rideOtpVerified?: boolean;
   serviceCharge?: number;
+  driverPayoutCompleted: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }

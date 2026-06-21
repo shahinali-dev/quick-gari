@@ -35,6 +35,7 @@ const rideSchema = new Schema<IRide>(
     rideOtpExpiry: { type: Date, select: false },
     rideOtpVerified: { type: Boolean, default: false },
     serviceCharge: { type: Number },
+    driverPayoutCompleted: { type: Boolean, default: false },
   },
   {
     timestamps: true,

@@ -21,6 +21,7 @@ export interface IReturn {
   returnOtpExpiry?: Date;
   returnOtpVerified?: boolean;
   serviceCharge?: number;
+  driverPayoutCompleted: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
