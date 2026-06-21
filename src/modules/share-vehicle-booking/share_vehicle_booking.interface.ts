@@ -32,6 +32,7 @@ export interface IShareVehicleBooking {
   serviceCharge?: number;
   journeyStartedAt?: Date;
   cancelledAt?: Date | null;
+  driverPayoutCompleted: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }

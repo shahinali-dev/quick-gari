@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authRoute } from "../modules/auth/auth.controller";
 import { carRoute } from "../modules/car/car.controller";
 import chatRouter from "../modules/chat/chat.controller";
+import driverPayoutRoutes from "../modules/driver-payout/driver_payout.controller";
 import { notificationRouter } from "../modules/notification/notification.controller";
 import paymentRouter from "../modules/payment/payment.controller";
 import returnRouter from "../modules/return/return.controller";
@@ -58,6 +59,10 @@ const moduleRoutes = [
   {
     path: "/v1/chat",
     route: chatRouter,
+  },
+  {
+    path: "/v1/driver-payout",
+    route: driverPayoutRoutes,
   },
 ];
 
