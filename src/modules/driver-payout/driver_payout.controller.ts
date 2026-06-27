@@ -55,5 +55,21 @@ router.patch(
   }),
 );
 
+router.get(
+  "/history",
+  isAuth,
+  isAdmin,
+  catchAsync(async (req, res) => {
+    const result = await driverPayoutService.getCompletedDriverPayouts(
+      req.query,
+    );
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "Driver payout history fetched successfully",
+      data: result,
+    });
+  }),
+);
 const driverPayoutRoutes = router;
 export default driverPayoutRoutes;

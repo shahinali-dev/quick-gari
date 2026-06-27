@@ -142,6 +142,84 @@ export class DriverPayoutService {
       "Invalid type. Must be 'ride', 'return', or 'shareVehicleBooking'",
     );
   }
+
+  async getCompletedDriverPayouts(query: Record<string, unknown>) {
+    const ridePayoutsQuery = new QueryBuilder(
+      RideModel.find({
+        driverPayoutCompleted: true,
+        status: RideStatus.COMPLETED,
+      })
+        .populate("driver", "name phoneNumber avatar")
+        .populate("car", "carName features")
+        .populate("user", "name phoneNumber avatar"),
+      query,
+    )
+      .search(["startLocation", "endLocation"])
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const returnPayoutsQuery = new QueryBuilder(
+      ReturnModel.find({
+        driverPayoutCompleted: true,
+        status: ReturnStatus.COMPLETED,
+      })
+        .populate("driver", "name phoneNumber avatar")
+        .populate("car", "carName features")
+        .populate("passenger", "name phoneNumber avatar"),
+      query,
+    )
+      .search(["startLocation", "endLocation"])
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const shareVehicleBookingPayoutsQuery = new QueryBuilder(
+      ShareVehicleBookingModel.find({
+        driverPayoutCompleted: true,
+        status: BookingStatus.CONFIRMED,
+      })
+        .populate("shareVehicle")
+        .populate("passenger.userId", "name phoneNumber avatar"),
+      query,
+    )
+      .search(["pickupStop", "dropStop"])
+      .filter()
+      .sort()
+      .paginate()
+      .fields();
+
+    const [
+      rides,
+      returns,
+      shareVehicleBookings,
+      rideMeta,
+      returnMeta,
+      shareVehicleBookingMeta,
+    ] = await Promise.all([
+      ridePayoutsQuery.modelQuery,
+      returnPayoutsQuery.modelQuery,
+      shareVehicleBookingPayoutsQuery.modelQuery,
+      ridePayoutsQuery.countTotal(),
+      returnPayoutsQuery.countTotal(),
+      shareVehicleBookingPayoutsQuery.countTotal(),
+    ]);
+
+    return {
+      result: {
+        rides,
+        returns,
+        shareVehicleBookings,
+      },
+      meta: {
+        rides: rideMeta,
+        returns: returnMeta,
+        shareVehicleBookings: shareVehicleBookingMeta,
+      },
+    };
+  }
 }
 
 export const driverPayoutService = new DriverPayoutService();
