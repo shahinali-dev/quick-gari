@@ -220,6 +220,7 @@ export class ShareVehicleService {
   async getAvailableShareVehicles(date?: Date) {
     const shareVehicles = await ShareVehicleModel.find({
       status: ShareVehicleStatus.SCHEDULED,
+      availableSeats: { $gt: 0 },
       ...(date && { journeyDate: { $gte: date } }),
     });
     return shareVehicles;
