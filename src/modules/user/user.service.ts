@@ -39,12 +39,14 @@ export class UserService {
           userAgent,
         );
 
+        const hashedPassword = await passwordUtils.hash(password);
+
         existingUser.otp = hashedOTP;
         existingUser.otpExpiry = otpExpiry;
         existingUser.otpAttempts = 0;
         existingUser.lastOtpSentAt = new Date();
         existingUser.otpDeviceFingerprint = deviceFingerprint;
-        existingUser.password = password;
+        existingUser.password = hashedPassword;
         await existingUser.save();
 
         const userWithoutPassword = await UserModel.findById(
