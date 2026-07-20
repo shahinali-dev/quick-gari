@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import httpStatus from "http-status";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { Types } from "mongoose";
