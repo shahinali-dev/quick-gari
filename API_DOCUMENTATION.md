@@ -186,6 +186,66 @@ Authorization: Bearer <accessToken>
 }
 ```
 
+### 5. Forgot Password (POST)
+
+**Endpoint:** `POST /v1/auth/forgot-password`
+
+**Access:** Public (No authentication required)
+
+**Request Body:**
+
+```json
+{
+  "email": "karim@example.com"
+}
+```
+
+**Response (Success - 200):**
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "OTP sent to your email",
+  "data": {
+    "email": "karim@example.com"
+  }
+}
+```
+
+---
+
+### 6. Reset Password (POST)
+
+**Endpoint:** `POST /v1/auth/reset-password`
+
+**Access:** Public (Requires valid OTP received via email)
+
+**Request Body:**
+
+```json
+{
+  "email": "karim@example.com",
+  "otp": "123456",
+  "newPassword": "newPassword123"
+}
+```
+
+**Response (Success - 200):**
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Password reset successfully",
+  "data": {
+    "email": "karim@example.com"
+  }
+}
+```
+
+---
+
 **User Roles:** All authenticated users
 
 ---
