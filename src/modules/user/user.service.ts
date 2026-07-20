@@ -242,6 +242,13 @@ export class UserService {
 
     return { message: "FCM token removed successfully" };
   }
+
+  // Get user for password reset OTP verification
+  async getUserForPasswordReset(id: string) {
+    return await UserModel.findById(id).select(
+      "+passwordResetOtp +passwordResetOtpExpiry +passwordResetAttempts +passwordResetBlockedUntil +lastPasswordResetOtpSentAt +passwordResetDeviceFingerprint",
+    );
+  }
 }
 
 // Export singleton instance

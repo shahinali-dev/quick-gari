@@ -1,5 +1,3 @@
-/* eslint-disable no-unused-vars */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import httpStatus from "http-status";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { Types } from "mongoose";
@@ -332,6 +330,161 @@ export class AuthService {
       }
       throw error;
     }
+  }
+
+  // Forgot Password - Send OTP to email
+  async forgotPassword(email: string) {
+    // Check if user exists
+    const user = await userService.isExist(email);
+    if (!user) {
+      // Don't reveal if user exists - return generic message
+      return {
+        message: "If an account with this email exists, an OTP will be sent",
+        data: { email },
+      };
+    }
+
+    // Check if user is blocked from password reset attempts
+    if (OTPUtils.isUserBlocked(user.passwordResetBlockedUntil)) {
+      const blockedUntil = user.passwordResetBlockedUntil!;
+      const remainingTime = Math.ceil(
+        (blockedUntil.getTime() - Date.now()) / 60000,
+      );
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        `Account temporarily blocked. Try again after ${remainingTime} minutes`,
+      );
+    }
+
+    // Check cooldown period before resending OTP
+    const { canResend, waitTime } = OTPUtils.canResendOTP(
+      user.lastPasswordResetOtpSentAt,
+    );
+    if (!canResend) {
+      throw new AppError(
+        httpStatus.TOO_MANY_REQUESTS,
+        `Please wait ${waitTime} seconds before requesting another OTP`,
+      );
+    }
+
+    // Generate and hash new OTP
+    const otp = OTPUtils.generateSecureOTP();
+    const hashedOTP = OTPUtils.hashOTP(otp);
+    const otpExpiry = new Date(Date.now() + OTP_CONFIG.EXPIRY_DURATION);
+
+    // Update user with password reset OTP
+    user.passwordResetOtp = hashedOTP;
+    user.passwordResetOtpExpiry = otpExpiry;
+    user.passwordResetAttempts = 0;
+    user.lastPasswordResetOtpSentAt = new Date();
+    await user.save();
+
+    // Send OTP email
+    await EmailService.sendPasswordResetOTPEmail(user.email, user.name, otp);
+
+    // Return generic message to prevent user enumeration
+    return {
+      message: "If an account with this email exists, an OTP will be sent",
+      data: { email },
+    };
+  }
+
+  // Reset Password - Verify OTP and update password
+  async resetPassword(email: string, otp: string, newPassword: string) {
+    // Check if user exists
+    const user = await userService.isExist(email);
+    if (!user) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Invalid reset request");
+    }
+
+    // Get user with password reset OTP fields
+    const userWithOTP = await userService.getUserForPasswordReset(
+      user._id!.toString(),
+    );
+    if (!userWithOTP) {
+      throw new AppError(httpStatus.BAD_REQUEST, "Invalid reset request");
+    }
+
+    // Check if user is blocked
+    if (OTPUtils.isUserBlocked(userWithOTP.passwordResetBlockedUntil)) {
+      const blockedUntil = userWithOTP.passwordResetBlockedUntil!;
+      const remainingTime = Math.ceil(
+        (blockedUntil.getTime() - Date.now()) / 60000,
+      );
+      throw new AppError(
+        httpStatus.FORBIDDEN,
+        `Too many failed attempts. Try again after ${remainingTime} minutes`,
+      );
+    }
+
+    // Check if OTP exists
+    if (!userWithOTP.passwordResetOtp) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "No OTP found. Please request a new one",
+      );
+    }
+
+    // Check OTP expiry
+    if (OTPUtils.isOTPExpired(userWithOTP.passwordResetOtpExpiry)) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "OTP has expired. Please request a new one",
+      );
+    }
+
+    // Verify OTP using timing-safe comparison
+    const isValid = OTPUtils.verifyOTPSafely(userWithOTP.passwordResetOtp, otp);
+
+    if (!isValid) {
+      userWithOTP.passwordResetAttempts =
+        (userWithOTP.passwordResetAttempts || 0) + 1;
+
+      // Check if max attempts reached
+      if ((userWithOTP.passwordResetAttempts || 0) >= OTP_CONFIG.MAX_ATTEMPTS) {
+        userWithOTP.passwordResetBlockedUntil = new Date(
+          Date.now() + OTP_CONFIG.BLOCK_DURATION,
+        );
+        userWithOTP.passwordResetOtp = undefined;
+        userWithOTP.passwordResetOtpExpiry = undefined;
+        await userWithOTP.save();
+
+        throw new AppError(
+          httpStatus.FORBIDDEN,
+          "Too many failed attempts. Account blocked for 30 minutes",
+        );
+      }
+
+      await userWithOTP.save();
+
+      const remainingAttempts = OTPUtils.getRemainingAttempts(
+        userWithOTP.passwordResetAttempts || 0,
+      );
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        `Invalid OTP. ${remainingAttempts} attempt${
+          remainingAttempts !== 1 ? "s" : ""
+        } remaining`,
+      );
+    }
+
+    // OTP verified - hash and update password
+    const hashedPassword = await passwordUtils.hash(newPassword);
+
+    // Update password and clear OTP data
+    userWithOTP.password = hashedPassword;
+    userWithOTP.passwordResetOtp = undefined;
+    userWithOTP.passwordResetOtpExpiry = undefined;
+    userWithOTP.passwordResetAttempts = 0;
+    userWithOTP.passwordResetBlockedUntil = undefined;
+    await userWithOTP.save();
+
+    return {
+      message: "Password reset successfully",
+      data: {
+        email: userWithOTP.email,
+      },
+    };
   }
 }
 

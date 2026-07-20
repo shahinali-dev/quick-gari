@@ -46,6 +46,32 @@ const userSchema = new Schema<IUser>(
       type: String,
       select: false,
     },
+    // Password Reset OTP fields
+    passwordResetOtp: {
+      type: String,
+      select: false,
+    },
+    passwordResetOtpExpiry: {
+      type: Date,
+      select: false,
+    },
+    passwordResetAttempts: {
+      type: Number,
+      default: 0,
+      select: false,
+    },
+    passwordResetBlockedUntil: {
+      type: Date,
+      select: false,
+    },
+    lastPasswordResetOtpSentAt: {
+      type: Date,
+      select: false,
+    },
+    passwordResetDeviceFingerprint: {
+      type: String,
+      select: false,
+    },
     fcmTokens: { type: [String], default: [], select: false },
   },
   {

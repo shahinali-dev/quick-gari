@@ -174,4 +174,27 @@ export class EmailService {
 
     await this.getTransporter().sendMail(mailOptions);
   }
+
+  static async sendPasswordResetOTPEmail(
+    email: string,
+    name: string,
+    otp: string,
+  ): Promise<void> {
+    const emailHTML = nunjucks.render("password-reset-otp-email.html", {
+      name,
+      otp,
+      expiryMinutes: 15,
+      year: new Date().getFullYear(),
+    });
+
+    const mailOptions = {
+      from: `"Quick Gari" <${config.APP_EMAIL}>`,
+      to: email,
+      subject: "Reset Your Password - OTP Code",
+      html: emailHTML,
+    };
+
+    const transporter = this.getTransporter();
+    await transporter.sendMail(mailOptions);
+  }
 }

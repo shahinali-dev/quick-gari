@@ -10,6 +10,18 @@ const baseUserValidationSchema = z.object({
   avatar: z.string().optional(),
 });
 
+const forgotPasswordValidationSchema = z.object({
+  email: z.string().email("Invalid email format"),
+});
+
+const resetPasswordValidationSchema = z.object({
+  email: z.string().email("Invalid email format"),
+  otp: z.string().min(1, "OTP is required"),
+  newPassword: z.string().min(8, "Password must be at least 8 characters"),
+});
+
 export const userValidation = {
   baseUserValidationSchema,
+  forgotPasswordValidationSchema,
+  resetPasswordValidationSchema,
 };

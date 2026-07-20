@@ -9,8 +9,10 @@ import {
   otpResendLimiter,
   otpVerifyLimiter,
 } from "../../middleware/otp_limiter";
+import validateRequest from "../../middleware/validate_request.middleware";
 import catchAsync from "../../utils/catch_async.utils";
 import sendResponse from "../../utils/send_response.utils";
+import { userValidation } from "../user/user.validation";
 import { authService } from "./auth.service";
 
 const router = Router();
@@ -159,6 +161,42 @@ router.post(
       success: true,
       message: "Access token refreshed successfully",
       data: result,
+    });
+  }),
+);
+
+// Forgot Password - Request OTP
+router.post(
+  "/forgot-password",
+  validateRequest(userValidation.forgotPasswordValidationSchema),
+  catchAsync(async (req: any, res: any) => {
+    const { email } = req.body;
+
+    const result = await authService.forgotPassword(email);
+
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: result.message,
+      data: result.data,
+    });
+  }),
+);
+
+// Reset Password - Verify OTP and update password
+router.post(
+  "/reset-password",
+  validateRequest(userValidation.resetPasswordValidationSchema),
+  catchAsync(async (req: any, res: any) => {
+    const { email, otp, newPassword } = req.body;
+
+    const result = await authService.resetPassword(email, otp, newPassword);
+
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: result.message,
+      data: result.data,
     });
   }),
 );

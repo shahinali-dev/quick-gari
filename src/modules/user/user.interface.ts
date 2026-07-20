@@ -19,6 +19,13 @@ export interface IUser {
   otpBlockedUntil?: Date;
   lastOtpSentAt?: Date;
   otpDeviceFingerprint?: string;
+  // Password Reset OTP fields
+  passwordResetOtp?: string;
+  passwordResetOtpExpiry?: Date;
+  passwordResetAttempts?: number;
+  passwordResetBlockedUntil?: Date;
+  lastPasswordResetOtpSentAt?: Date;
+  passwordResetDeviceFingerprint?: string;
   fcmTokens?: string[];
   createdAt?: Date | string;
   updatedAt?: Date | string;
@@ -46,6 +53,13 @@ export interface IAuthUser {
   otpBlockedUntil?: Date;
   lastOtpSentAt?: Date;
   otpDeviceFingerprint?: string;
+  // Password Reset OTP fields
+  passwordResetOtp?: string;
+  passwordResetOtpExpiry?: Date;
+  passwordResetAttempts?: number;
+  passwordResetBlockedUntil?: Date;
+  lastPasswordResetOtpSentAt?: Date;
+  passwordResetDeviceFingerprint?: string;
   createdAt: string;
   updatedAt: string;
   __v: number;
