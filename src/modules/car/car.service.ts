@@ -17,6 +17,13 @@ import CarModel from "./car.model";
 export class CarService {
   //  REGISTER CAR
   async registerCar(data: ICreateCarPayload, files: ICarFiles, userId: string) {
+    const userExistingCar = await CarModel.findOne({ user: userId });
+    if (userExistingCar) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "You already have a car Or your Registration request is pending",
+      );
+    }
     try {
       const carPayload: ICar = {
         carName: data.carName,
@@ -64,14 +71,29 @@ export class CarService {
 
   // approve a car
   async approveCar(carId: string) {
-    const car = await CarModel.findById(carId);
+    const car = await CarModel.findById(carId).populate("user");
     if (!car) {
       throw new AppError(httpStatus.NOT_FOUND, "Car not found");
     }
     car.isApproved = true;
     await car.save();
 
-    await userService.makeCarOwner(car.user.toString());
+    const userData = car.user as any;
+    const userId = userData._id.toString();
+
+    await userService.makeCarOwner(userId);
+
+    await notificationService.notifyUser(
+      userId,
+      `Your car registration request has been approved`,
+      "CAR_REGISTRATION_APPROVED",
+      { carId: car._id.toString() },
+      {
+        carName: car.carName,
+        userName: userData?.name,
+        userEmail: userData?.email,
+      },
+    );
     return car;
   }
 
