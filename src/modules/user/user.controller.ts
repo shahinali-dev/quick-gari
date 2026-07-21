@@ -71,6 +71,20 @@ router.get(
 );
 
 router.get(
+  "/settings",
+  isAuth,
+  catchAsync(async (req, res) => {
+    const user = await userService.userSettings(req.user!._id);
+    sendResponse(res, {
+      success: true,
+      statusCode: httpStatus.OK,
+      message: "User settings fetched successfully",
+      data: user,
+    });
+  }),
+);
+
+router.get(
   "/:id",
   isAuth,
   isAdminOrAuthUser,

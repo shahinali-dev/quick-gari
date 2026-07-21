@@ -318,6 +318,11 @@ export class CarService {
       .select("carName features user");
     return cars;
   }
+
+  async userCarStatus(userId: string) {
+    const car = await CarModel.findOne({ user: userId }).select("isApproved");
+    return car;
+  }
 }
 
 // Export singleton instance

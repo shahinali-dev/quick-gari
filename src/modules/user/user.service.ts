@@ -5,6 +5,7 @@ import createToken from "../../utils/create_token";
 import { OTPUtils } from "../../utils/otp_utils";
 import passwordUtils from "../../utils/password_utils";
 import QueryBuilder from "../../utils/query_builder.utils";
+import { carService } from "../car/car.service";
 import { EmailService } from "../email/email.service";
 import { OTP_CONFIG, Role } from "./user.enum";
 import { IUser } from "./user.interface";
@@ -248,6 +249,14 @@ export class UserService {
     return await UserModel.findById(id).select(
       "+passwordResetOtp +passwordResetOtpExpiry +passwordResetAttempts +passwordResetBlockedUntil +lastPasswordResetOtpSentAt +passwordResetDeviceFingerprint",
     );
+  }
+
+  async userSettings(userId: string) {
+    const carRegistrationRequest = await carService.userCarStatus(userId);
+    const response = {
+      carRegistrationRequest: carRegistrationRequest?.isApproved || null,
+    };
+    return response;
   }
 }
 
