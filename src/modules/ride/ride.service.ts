@@ -88,9 +88,38 @@ export class RideService {
   }
 
   async getAllRequestedRides() {
-    const rides = await RideModel.find({ status: RideStatus.REQUESTED })
-      .populate("user", "name phoneNumber")
-      .sort({ createdAt: -1 });
+    const now = new Date();
+
+    const rides = await RideModel.aggregate([
+      {
+        $match: { status: RideStatus.REQUESTED },
+      },
+      {
+        $addFields: {
+          combinedDateTime: {
+            $dateFromParts: {
+              year: { $year: "$date" },
+              month: { $month: "$date" },
+              day: { $dayOfMonth: "$date" },
+              hour: { $hour: "$startTime" },
+              minute: { $minute: "$startTime" },
+              second: { $second: "$startTime" },
+            },
+          },
+        },
+      },
+      {
+        $match: {
+          combinedDateTime: { $gte: now },
+        },
+      },
+      { $sort: { createdAt: -1 } },
+    ]);
+
+    await RideModel.populate(rides, {
+      path: "user",
+      select: "name phoneNumber",
+    });
 
     return rides;
   }
