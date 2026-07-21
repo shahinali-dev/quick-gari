@@ -163,13 +163,20 @@ export class ReturnService {
       .populate("driver", "name phoneNumber avatar")
       .populate("car", "carName features");
 
-    // Notify driver
-    await notificationService.notifyUser(
-      new Types.ObjectId(returnRide.driver.toString()),
-      "You got a booking for return trip",
-      "GOT_RETURN_TRIP_BOOKING",
-      { rideId: updatedReturnRide!._id.toString() },
-    );
+    // 👇 notification failure e jeno booking fail dekhano na hoy
+    try {
+      await notificationService.notifyUser(
+        new Types.ObjectId(returnRide.driver.toString()),
+        "You got a booking for return trip",
+        "GOT_RETURN_TRIP_BOOKING",
+        { returnRideId: updatedReturnRide!._id.toString() }, // 👈 rideId theke returnRideId e change
+      );
+    } catch (notifyErr) {
+      console.error(
+        `⚠️ Failed to notify driver about return ride booking ${id}:`,
+        notifyErr,
+      );
+    }
 
     return updatedReturnRide;
   }

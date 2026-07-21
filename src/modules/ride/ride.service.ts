@@ -63,17 +63,26 @@ export class RideService {
       user: userId,
     });
 
-    // Populate user info for notification
-    const populatedRide = await RideModel.findById(newRide._id).populate(
-      "user",
-      "name phone",
-    );
+    // 👇 notification failure এ jeno ride creation fail dekhano na hoy,
+    // tai eta try/catch e isolate kora holo
+    try {
+      // Populate user info for notification
+      const populatedRide = await RideModel.findById(newRide._id).populate(
+        "user",
+        "name phone",
+      );
 
-    // Send real-time notification to all car owners
-    await notificationService.sendRideNotificationToAllCarOwners(
-      newRide._id,
-      populatedRide?.toObject() as Record<string, unknown>,
-    );
+      // Send real-time notification to all car owners
+      await notificationService.sendRideNotificationToAllCarOwners(
+        newRide._id,
+        populatedRide?.toObject() as Record<string, unknown>,
+      );
+    } catch (notifyErr) {
+      console.error(
+        `⚠️ Failed to notify car owners about new ride ${newRide._id}:`,
+        notifyErr,
+      );
+    }
 
     return newRide;
   }
@@ -108,7 +117,6 @@ export class RideService {
 
     const carIdObj = car?._id ? new Types.ObjectId(car._id as any) : undefined;
 
-    // Check if driver already submitted proposal
     const existingProposal = ride.proposals.find(
       (p) => p.driver.toString() === driverId.toString(),
     );
@@ -130,6 +138,9 @@ export class RideService {
 
     await ride.save();
 
+    // Newly pushed proposal er subdocument id
+    const savedProposal = ride.proposals[ride.proposals.length - 1];
+
     // Populate proposal details
     const updatedRide = await RideModel.findById(rideId)
       .populate({
@@ -141,14 +152,23 @@ export class RideService {
         select: "carName features user",
       });
 
-    // Notify user about new proposal
-    // signature: notifyUser(userId, message, type, refs?, metadata?)
-    await notificationService.notifyUser(
-      ride.user,
-      "New proposal received for your ride!",
-      "NEW_PROPOSAL",
-      { rideId: ride._id.toString() },
-    );
+    //  notification failure e jeno proposal submission fail dekhano na hoy
+    try {
+      await notificationService.notifyUser(
+        ride.user,
+        "New proposal received for your ride!",
+        "NEW_PROPOSAL",
+        {
+          rideId: ride._id.toString(),
+          proposalId: savedProposal._id?.toString(),
+        },
+      );
+    } catch (notifyErr) {
+      console.error(
+        `⚠️ Failed to notify ride owner about new proposal on ride ${rideId}:`,
+        notifyErr,
+      );
+    }
 
     return updatedRide;
   }
@@ -192,30 +212,46 @@ export class RideService {
 
     const rideResponse = populatedRide?.toObject() as any;
 
-    // Notify selected driver
-    const selectedDriverId = (selectedProposal.driver as any)?._id
-      ? (selectedProposal.driver as any)._id
-      : (selectedProposal.driver as any);
+    // 👇 notification block — kono ekta fail korleo jeno mul accept
+    // operation fail na dekhay, tai eta try/catch e isolate kora holo
+    try {
+      const selectedDriverId = selectedProposal.driver.toString();
 
-    // signature: notifyUser(userId, message, type, refs?, metadata?)
-    await notificationService.notifyUser(
-      selectedDriverId,
-      "Your proposal has been accepted!",
-      "PROPOSAL_ACCEPTED",
-      { rideId: ride._id.toString() },
-    );
+      const rejectedDriverIds = ride.proposals
+        .filter((p) => p._id?.toString() !== proposalId)
+        .map((p) => p.driver.toString());
 
-    // Notify rejected drivers
-    const rejectedDrivers = ride.proposals
-      .filter((p) => p._id?.toString() !== proposalId)
-      .map((p) => ((p.driver as any)?._id ? (p.driver as any)._id : p.driver));
+      // Promise.allSettled — ekta driver ke notify korte fail korleo
+      // baki drivergulo jeno notify hoy, ar function crash na kore
+      const results = await Promise.allSettled([
+        notificationService.notifyUser(
+          selectedDriverId,
+          "Your proposal has been accepted!",
+          "PROPOSAL_ACCEPTED",
+          { rideId: ride._id.toString() },
+        ),
+        ...rejectedDriverIds.map((driverId) =>
+          notificationService.notifyUser(
+            driverId,
+            "Ride has been accepted by another driver",
+            "RIDE_TAKEN",
+            { rideId: ride._id.toString() },
+          ),
+        ),
+      ]);
 
-    for (const driverId of rejectedDrivers) {
-      await notificationService.notifyUser(
-        driverId as any,
-        "Ride has been accepted by another driver",
-        "RIDE_TAKEN",
-        { rideId: ride._id.toString() },
+      results.forEach((result, idx) => {
+        if (result.status === "rejected") {
+          console.error(
+            `⚠️ Failed to send accept/reject notification (index ${idx}) for ride ${rideId}:`,
+            result.reason,
+          );
+        }
+      });
+    } catch (notifyErr) {
+      console.error(
+        `⚠️ Failed to process accept/reject notifications for ride ${rideId}:`,
+        notifyErr,
       );
     }
 

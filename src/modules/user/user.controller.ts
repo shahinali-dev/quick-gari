@@ -74,7 +74,8 @@ router.get(
   "/settings",
   isAuth,
   catchAsync(async (req, res) => {
-    const user = await userService.userSettings(req.user!._id);
+    const userId = req.user!._id.toString();
+    const user = await userService.userSettings(userId);
     sendResponse(res, {
       success: true,
       statusCode: httpStatus.OK,

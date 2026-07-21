@@ -2,6 +2,7 @@
 import { Types } from "mongoose";
 import { NotificationPayload, socketService } from "../../config/socket.config";
 import { sendPushNotification } from "../../utils/fcm.utils";
+import { Role } from "../user/user.enum";
 import UserModel from "../user/user.model";
 import { NotificationModel } from "./notification.model";
 
@@ -11,6 +12,8 @@ interface NotificationRefs {
   rideId?: string;
   carId?: string;
   paymentId?: string;
+  proposalId?: string;
+  returnRideId?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -18,12 +21,17 @@ interface NotificationRefs {
 function buildRefFields(refs?: NotificationRefs) {
   return {
     ...(refs?.rideId && { rideId: new Types.ObjectId(refs.rideId) }),
+    ...(refs?.returnRideId && {
+      returnRideId: new Types.ObjectId(refs.returnRideId),
+    }),
     ...(refs?.carId && { carId: new Types.ObjectId(refs.carId) }),
     ...(refs?.paymentId && { paymentId: new Types.ObjectId(refs.paymentId) }),
+    ...(refs?.proposalId && {
+      proposalId: new Types.ObjectId(refs.proposalId),
+    }),
   };
 }
 
-// FCM data payload — সব value string হতে হবে
 function buildFcmData(
   type: string,
   notificationId: string,
@@ -33,12 +41,13 @@ function buildFcmData(
     type,
     notificationId,
     ...(refs?.rideId && { rideId: refs.rideId }),
+    ...(refs?.returnRideId && { returnRideId: refs.returnRideId }),
     ...(refs?.carId && { carId: refs.carId }),
     ...(refs?.paymentId && { paymentId: refs.paymentId }),
+    ...(refs?.proposalId && { proposalId: refs.proposalId }),
   };
 }
 
-// "RIDE_STARTED" → "Ride Started"
 function formatTitle(type: string): string {
   return type
     .replace(/_/g, " ")
@@ -71,24 +80,26 @@ class NotificationService {
         metadata,
       });
 
+      // DB doc theke e flat socket payload — REST response er shape er sathe match korbe
       const socketPayload: NotificationPayload = {
         _id: notification._id.toString(),
-        type,
-        message,
-        isRead: false,
-        refs,
-        metadata,
-        timestamp: new Date(),
-      } as NotificationPayload & { isRead: boolean };
+        type: notification.type,
+        message: notification.message,
+        isRead: notification.isRead,
+        rideId: notification.rideId?.toString(),
+        carId: notification.carId?.toString(),
+        paymentId: notification.paymentId?.toString(),
+        proposalId: notification.proposalId?.toString(),
+        metadata: notification.metadata,
+        timestamp: notification.createdAt as Date,
+      };
 
-      // ── Socket (online হলে real-time পাবে) ───────────────────────────────
       socketService.sendToUser(
         userObjId.toString(),
         "notification:new",
         socketPayload,
       );
 
-      // ── FCM (offline হলেও push notification পাবে) ────────────────────────
       const user = await UserModel.findById(userObjId).select("fcmTokens");
       if (user?.fcmTokens?.length) {
         await sendPushNotification(
@@ -138,19 +149,23 @@ class NotificationService {
         ordered: false,
       });
 
+      const first = inserted[0];
+
       const socketPayload: NotificationPayload = {
-        _id: inserted[0]?._id?.toString(),
-        type,
-        message,
-        refs,
-        metadata,
-        timestamp: new Date(),
+        _id: first?._id?.toString(),
+        type: first?.type ?? type,
+        message: first?.message ?? message,
+        isRead: first?.isRead ?? false,
+        rideId: first?.rideId?.toString(),
+        carId: first?.carId?.toString(),
+        paymentId: first?.paymentId?.toString(),
+        proposalId: first?.proposalId?.toString(),
+        metadata: first?.metadata,
+        timestamp: (first?.createdAt as Date) ?? new Date(),
       };
 
-      // ── Socket ────────────────────────────────────────────────────────────
       socketService.sendToAllAdmins("notification:new", socketPayload);
 
-      // ── FCM — সব admin এর সব device এ পাঠাও ─────────────────────────────
       const allAdminTokens = admins
         .flatMap((a) => a.fcmTokens ?? [])
         .filter(Boolean);
@@ -160,7 +175,7 @@ class NotificationService {
           allAdminTokens,
           formatTitle(type),
           message,
-          buildFcmData(type, inserted[0]?._id?.toString() ?? "", refs),
+          buildFcmData(type, first?._id?.toString() ?? "", refs),
         );
       }
 
@@ -191,7 +206,7 @@ class NotificationService {
 
     const notifications = carOwners.map((owner) => ({
       userId: owner._id,
-      audience: "user",
+      audience: Role.CAR_OWNER,
       rideId,
       message,
       type: "RIDE_REQUEST",
@@ -201,16 +216,16 @@ class NotificationService {
     try {
       await NotificationModel.insertMany(notifications, { ordered: false });
 
-      // ── Socket ────────────────────────────────────────────────────────────
-      socketService.sendToCarOwners("notification:new", {
+      const socketPayload: NotificationPayload = {
         type: "RIDE_REQUEST",
         message,
-        refs: { rideId: rideId.toString() },
+        rideId: rideId.toString(),
         ride: rideData,
         timestamp: new Date(),
-      });
+      };
 
-      // ── FCM — সব car owner এর সব device এ পাঠাও ─────────────────────────
+      socketService.sendToCarOwners("notification:new", socketPayload);
+
       const allCarOwnerTokens = carOwners
         .flatMap((o) => o.fcmTokens ?? [])
         .filter(Boolean);

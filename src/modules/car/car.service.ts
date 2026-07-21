@@ -42,28 +42,33 @@ export class CarService {
 
       const newCar = await CarModel.create(carPayload);
 
-      // Populate user info for notification
-      const populatedCar = await CarModel.findById(newCar._id).populate(
-        "user",
-        "name email",
-      );
+      //  notification ke isolated try/catch e felo — eta fail korle jeno
+      // pura registration fail na hoy, karon car ইতিমধ্যে successfully create hoyeche
+      try {
+        const populatedCar = await newCar.populate("user", "name email");
+        const userData = populatedCar.user as any;
 
-      // Send real-time notification to all admins
-      const userData = populatedCar?.user as any;
-      await notificationService.notifyAdmins(
-        `New car registration request from ${userData?.name || "User"}`,
-        "CAR_REGISTRATION",
-        { carId: newCar._id.toString() },
-        {
-          carName: newCar.carName,
-          userName: userData?.name,
-          userEmail: userData?.email,
-        },
-      );
+        await notificationService.notifyAdmins(
+          `New car registration request from ${userData?.name || "User"}`,
+          "CAR_REGISTRATION",
+          { carId: newCar._id.toString() },
+          {
+            carName: newCar.carName,
+            userName: userData?.name,
+            userEmail: userData?.email,
+          },
+        );
+      } catch (notifyErr) {
+        // log korো kintu throw করো না — car registration already succeeded
+        console.error(
+          "⚠️ Failed to notify admins about new car registration:",
+          notifyErr,
+        );
+      }
 
       return newCar;
     } catch (error) {
-      // Automatically cleanup all uploaded files
+      // এখন এই catch শুধু আসল car-creation error এর জন্যই ট্রিগার হবে
       await cleanupUploadedFiles(files as any);
       throw error;
     }
@@ -83,17 +88,23 @@ export class CarService {
 
     await userService.makeCarOwner(userId);
 
-    await notificationService.notifyUser(
-      userId,
-      `Your car registration request has been approved`,
-      "CAR_REGISTRATION_APPROVED",
-      { carId: car._id.toString() },
-      {
-        carName: car.carName,
-        userName: userData?.name,
-        userEmail: userData?.email,
-      },
-    );
+    //  notification fail hole jeno mul operation (approve) fail dekhano na hoy
+    try {
+      await notificationService.notifyUser(
+        userId,
+        `Your car registration request has been approved`,
+        "CAR_REGISTRATION_APPROVED",
+        { carId: car._id.toString() },
+        {
+          carName: car.carName,
+          userName: userData?.name,
+          userEmail: userData?.email,
+        },
+      );
+    } catch (notifyErr) {
+      console.error("⚠️ Failed to notify user about car approval:", notifyErr);
+    }
+
     return car;
   }
 

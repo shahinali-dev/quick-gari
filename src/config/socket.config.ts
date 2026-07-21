@@ -13,7 +13,11 @@ export interface NotificationPayload {
   _id?: string;
   type: string;
   message: string;
-  refs?: { rideId?: string; carId?: string; paymentId?: string };
+  isRead?: boolean;
+  rideId?: string;
+  carId?: string;
+  paymentId?: string;
+  proposalId?: string;
   metadata?: Record<string, unknown>;
   timestamp: Date;
   ride?: Record<string, unknown>;
@@ -79,8 +83,6 @@ class SocketService {
     this.io.on("connection", (socket: Socket) => {
       console.log(`⚡ New client connected: ${socket.id}`);
 
-      // ─── User join ───────────────────────────────────────────────────────────
-      // Client: socket.emit("user:connect", { userId, role, isCarOwner })
       socket.on("user:connect", (data: UserConnectData) => {
         const { userId, role, isCarOwner } = data;
 
@@ -100,8 +102,6 @@ class SocketService {
         console.log(`✅ User ${userId} (${role}) connected: ${socket.id}`);
       });
 
-      // ─── Chat: typing indicator ──────────────────────────────────────────────
-      // Client: socket.emit("chat:typing", { contextType, contextId, senderId, receiverId })
       socket.on("chat:typing", (data: TypingData) => {
         this.io?.to(`user:${data.receiverId}`).emit("chat:typing", {
           contextType: data.contextType,
@@ -110,7 +110,6 @@ class SocketService {
         });
       });
 
-      // Client: socket.emit("chat:stop_typing", { contextType, contextId, senderId, receiverId })
       socket.on("chat:stop_typing", (data: TypingData) => {
         this.io?.to(`user:${data.receiverId}`).emit("chat:stop_typing", {
           contextType: data.contextType,
@@ -119,9 +118,6 @@ class SocketService {
         });
       });
 
-      // ─── Chat: mark read via socket ──────────────────────────────────────────
-      // Client: socket.emit("chat:read", { contextType, contextId, userId })
-      // REST API তেও আছে — যেটা সুবিধা সেটা use করো
       socket.on("chat:read", async (data: ChatReadData) => {
         try {
           const conversation = await ConversationModel.findOne({
@@ -149,7 +145,6 @@ class SocketService {
         }
       });
 
-      // ─── Disconnect ──────────────────────────────────────────────────────────
       socket.on("disconnect", () => {
         for (const [userId, socketId] of this.connectedUsers.entries()) {
           if (socketId === socket.id) {
@@ -164,7 +159,6 @@ class SocketService {
 
   // ─── Notification emitters ────────────────────────────────────────────────
 
-  /** একজন specific user কে পাঠাও — notification বা chat দুটোর জন্যই */
   sendToUser(
     userId: string,
     event: string,
@@ -178,7 +172,6 @@ class SocketService {
     console.log(`📤 Sent '${event}' to user ${userId}`);
   }
 
-  /** room:admin এ সব admin কে একসাথে পাঠাও */
   sendToAllAdmins(event: string, data: NotificationPayload) {
     if (!this.io) {
       console.error("Socket.IO not initialized");
@@ -188,7 +181,6 @@ class SocketService {
     console.log(`📢 Sent '${event}' to room:admin`);
   }
 
-  /** room:car-owners এ single emit — N+1 loop এর বদলে */
   sendToCarOwners(event: string, data: NotificationPayload) {
     if (!this.io) {
       console.error("Socket.IO not initialized");
@@ -198,7 +190,6 @@ class SocketService {
     console.log(`📤 Sent '${event}' to room:car-owners`);
   }
 
-  /** সব connected user কে broadcast */
   broadcast(event: string, data: NotificationPayload) {
     if (!this.io) {
       console.error("Socket.IO not initialized");
@@ -217,7 +208,6 @@ class SocketService {
     return this.io;
   }
 
-  /** User এখন online আছে কিনা */
   isUserOnline(userId: string): boolean {
     return this.connectedUsers.has(userId);
   }

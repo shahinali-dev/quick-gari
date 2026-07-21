@@ -1,17 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Types } from "mongoose";
-import { NotificationType } from "./notification.model";
 
 export interface INotification {
   userId: Types.ObjectId;
-  audience: "user" | "admin";
-  type: NotificationType;
+  audience: "user" | "admin" | "car_owner";
+  type: string;
   message: string;
   rideId?: Types.ObjectId;
+  returnRideId?: Types.ObjectId;
   carId?: Types.ObjectId;
   paymentId?: Types.ObjectId;
-  metadata?: any;
+  proposalId?: Types.ObjectId;
+  metadata?: Record<string, unknown>;
   isRead: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
